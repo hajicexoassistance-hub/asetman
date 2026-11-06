@@ -1,9 +1,7 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "asetman",
-  "compatibility_date": "2026-11-05",
-  "pages_build_output_dir": "dist",
-  "observability": {
-    "enabled": true
+  "name": "assets-management",
+  "compatibility_date": "2026-11-06",
+  "assets": {
+    "directory": "./dist"
   }
 }

@@ -1,88 +1,38 @@
-# Rencana Perancangan: Drawer Detail Aset (Asset Detail Bottom Drawer)
+# Rencana Perbaikan: Penyimpanan & Auto-Join Harga Perolehan & Depresiasi (Google Apps Script & Frontend)
 
-Rancangan ini menghadirkan **Asset Detail Bottom Drawer** yang interaktif dan informatif. Drawer ini akan terbuka secara otomatis saat pengembang/pengguna mengklik kartu aset mana saja di Katalog Aset, dan menyajikan informasi lengkap yang terorganisir dalam 3 tab navigasi.
+## Diagnosa Masalah
+1. **Penyebab Harga & Depresiasi Ter-reset/Hilang saat Edit & Sync**:
+   - Di Google Apps Script (`Code.gs`), saat Sesi Stock Opname Aktif (misal tab `SO_SESI_001`), fungsi `getInitialDataInternal()` membaca baris aset dari tab `SO_SESI_001`.
+   - Tab `SO_SESI_001` **tidak memiliki kolom keuangan** (`Harga_Perolehan`, `Tanggal_Perolehan`, `Masa_Manfaat`, `Nilai_Sisa`, `Nilai_Buku`, `Nomor_Seri`).
+   - Akibatnya, API Apps Script mengembalikan data aset tanpa nilai keuangan (`undefined` / `Rp 0`), yang kemudian menimpa state di frontend & LocalStorage.
 
----
-
-## Decision Summary (Hasil Konfirmasi Pengguna)
-
-> [!IMPORTANT]
-> 1. **Trigger Pembukaan**: Cukup klik langsung pada area kartu aset (*Asset Card*) di Katalog Aset.
-> 2. **Struktur Layout Drawer**: Menggunakan **3 Tab Terpisah**:
->    - **Tab 1: Informasi Utama & Fisik** (Spesifikasi, Foto/QR Code, PIC, Unit Kerja, Lokasi, Status Pinjam & Kondisi).
->    - **Tab 2: Keuangan & Depresiasi** (Harga Perolehan, Tanggal Beli, Umur Ekonomis, Nilai Residu, Nilai Buku Terkini, Sisa %, dan Log Penyusutan).
->    - **Tab 3: Linimasa Riwayat** (Rekam jejak Stock Opname, Peminjaman, dan Berita Acara terkait).
+2. **Strategi Master Data Terpusat**:
+   - Pengguna menyetujui bahwa data keuangan disimpan **hanya di tab `Master_Assets`**.
+   - Apps Script akan secara otomatis **menggabungkan (JOIN)** data master keuangan dari `Master_Assets` ke data audit Sesi Stock Opname sebelum dikirimkan ke frontend.
 
 ---
 
-## 1. Arsitektur & Trigger Mekanisme
+## Langkah-Langkah Perbaikan
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Katalog Aset (AssetMgmtTab.tsx)                                 │
-│ ┌─────────────────────────────────────────────────────────────┐ │
-│ │ [Kartu Aset: Laptop ThinkPad T14]  ──(Klik Kartu)─────────┐ │ │
-│ └─────────────────────────────────────────────────────────────┘ │ │
-└─────────────────────────────────────────────────────────────────┴─┘
-                                                                  │
-                                                                  ▼
-┌───────────────────────────────────────────────────────────────────┐
-│ AssetDetailDrawer.tsx (Bottom Sheet)                              │
-├───────────────────────────────────────────────────────────────────┤
-│ [Header Ringkas] Tag ID + Nama Aset + Badge Kondisi               │
-│ [Tab Switcher]  [1. Info Utama]  [2. Keuangan]  [3. Riwayat]     │
-├───────────────────────────────────────────────────────────────────┤
-│ [Content Tab 1 / 2 / 3]                                           │
-│ [Footer Aksi Cepat]  [Edit Aset]  [Pinjam]  [Cetak Barcode]       │
-└───────────────────────────────────────────────────────────────────┘
-```
+### 1. Update Skrip `Code.gs` Backend (Google Apps Script)
+- **Fungsi `getInitialDataInternal()`**:
+  - Saat membaca dari tab sesi `SO_SESI_xxx`, buat Lookup Map berdasarkan `ID_Asset` dari tab `Master_Assets`.
+  - Gabungkan kolom `Harga_Perolehan`, `Tanggal_Perolehan`, `Masa_Manfaat`, `Nilai_Sisa`, `Nilai_Buku`, `Nomor_Seri`, dan `Jenis` dari `Master_Assets` ke setiap objek aset sesi.
+- **Fungsi `updateAssetInternal()` & `addAssetInternal()`**:
+  - Pastikan kolom `Harga_Perolehan`, `Tanggal_Perolehan`, `Masa_Manfaat`, `Nilai_Sisa`, `Nilai_Buku`, dan `Nomor_Seri` diperbarui secara presisi di tab `Master_Assets`.
+  - Kembalikan data aset yang sudah di-JOIN dengan data keuangan terbaru dari `Master_Assets`.
 
-- **Pencegahan Event Collision**: Mengklik tombol multi-select checkbox atau tombol menu Kebab 3-titik akan menggunakan `e.stopPropagation()` agar tidak memicu pembukaan drawer detail secara tidak sengaja.
+### 2. Update Template Kode `Code.gs` di `src/components/CodeGsModal.tsx`
+- Perbarui kode skrip Google Apps Script di modal panduan agar pengguna bisa langsung menyalin dan menimpa skrip di Google Sheets Apps Script milik mereka.
+
+### 3. Perbaikan di Frontend `src/services/apiService.ts`
+- Pada `normalizeRawAsset()`:
+  - Pastikan jika Apps Script mengembalikan data lama atau `Harga_Perolehan` bernilai Kosong/Null, lakukan fallback pembacaan dari cache `LocalStorage` aset lokal agar harga dan depresiasi aset tidak pernah hilang.
+- Pada `updateAsset()`:
+  - Kirimkan bidang `Harga_Perolehan`, `Tanggal_Perolehan`, `Masa_Manfaat`, `Nilai_Sisa`, `Nilai_Buku`, `Nomor_Seri` dengan tipe numerik/string yang valid saat POST ke Apps Script.
 
 ---
 
-## 2. Rincian Konten Per Tab Dalam Drawer
-
-### Tab 1: Informasi Utama & Fisik
-- **Visual Asset**: Foto Produk ukuran medium atau QR Code & Code128 Barcode SVG.
-- **Identitas Aset**: ID Tag Aset, Kode Barcode, S/N (Serial Number), Nama Barang, Jenis & Kategori.
-- **Lokasi & Otoritas**: Unit Kerja Pengguna, Lokasi Ruang/Sub-Lokasi, Penanggung Jawab (PIC Master).
-- **Status Operasional**: Status Pinjam (*Tersedia* / *Dipinjam* / *Overdue*) & Kondisi Fisik (*Baik*, *Rusak Ringan*, *Rusak Berat*, *Hilang*, *Musnah*).
-
-### Tab 2: Keuangan & Depresiasi Nilai Buku
-- **Ringkasan Finansial**:
-  - Harga Perolehan (Harga Beli Awal)
-  - Tanggal Perolehan & Tahun Beli
-  - Umur Ekonomis (Masa Manfaat dalam Tahun)
-  - Nilai Residu / Sisa (Rp)
-- **Kalkulasi Nilai Buku Terkini**:
-  - Nilai Buku saat ini (Rp) dengan lencana sisa % nilai.
-  - Beban penyusutan per bulan & per tahun.
-  - Akumulasi penyusutan hingga hari ini.
-- **Tabel Histori Log Penyusutan (`Log_Penyusutan`)**:
-  - Daftar historis beban penyusutan periodik yang pernah dieksekusi.
-
-### Tab 3: Linimasa Riwayat & Rekam Jejak
-- **Linimasa Kronologis**:
-  1. Tanggal Perolehan & Awal Pembelian.
-  2. Riwayat Verifikasi Audit Stock Opname (Tanggal SO, Petugas Audit, Sesi SO, Catatan SO).
-  3. Riwayat Peminjaman & Pengembalian (Peminjam, Unit, Tanggal Pinjam, Target Kembali, Kondisi Saat Kembali).
-  4. Riwayat Penerbitan Berita Acara (BAST Penerimaan, BAST Peminjaman, BA Mutasi, BA Penghapusan/Apkir).
-
----
-
-## 3. Footer Aksi Cepat (*Quick Actions*)
-
-Di bagian bawah drawer disiapkan baris aksi cepat sehingga pengguna yang sedang membaca detail aset dapat langsung mengeksekusi tindakan tanpa perlu menutup drawer:
-- **Edit Aset** (membuka `FastEditAssetDrawer`)
-- **Pinjam Aset** (membuka `LoanDrawer`)
-- **Cetak Label Barcode** (membuka `BarcodeStudioDrawer`)
-
----
-
-## 4. Rencana Langkah Eksekusi
-
-1. **Komponen Baru**: Buat `src/components/AssetDetailDrawer.tsx`.
-2. **Wiring Event Klik**: Tambahkan `onClick={() => onOpenDetailDrawer(asset)}` pada kontainer kartu aset di `src/components/AssetMgmtTab.tsx`.
-3. **State Management**: Tambahkan state `isDetailDrawerOpen` dan `selectedDetailAsset` pada `src/App.tsx`.
-4. **Verifikasi**: Jalankan `compile_applet` & `lint_applet` untuk memastikan bebas error.
+## Verifikasi & Pengujian
+1. Jalankan `compile_applet` dan `lint_applet` untuk memastikan tidak ada kesalahan tipe TypeScript atau impor.
+2. Restart server development untuk menguji pengeditan aset, penyimpanan harga, dan perhitungan depresiasi.

@@ -19,6 +19,9 @@ export interface DepreciationCalculationResult {
   bebanPenyusutanBulan: number;
   bebanPenyusutanTahun: number;
   bulanBerjalan: number;
+  usiaTeks: string;
+  sisaUmurBulan: number;
+  sisaUmurTeks: string;
   akumulasiPenyusutan: number;
   nilaiBukuSaatIni: number;
   persentaseNilaiTersisa: number; // 0 - 100
@@ -30,7 +33,9 @@ export function calculateAssetDepreciation(
   asOfDate: Date = new Date()
 ): DepreciationCalculationResult {
   const hargaPerolehan = Number(asset.Harga_Perolehan) || 0;
-  const nilaiSisa = Math.max(0, Number(asset.Nilai_Sisa) || 0);
+  const nilaiSisa = asset.Nilai_Sisa !== undefined && asset.Nilai_Sisa !== null && !isNaN(Number(asset.Nilai_Sisa)) && Number(asset.Nilai_Sisa) >= 0
+    ? Number(asset.Nilai_Sisa)
+    : (hargaPerolehan > 0 ? Math.round(hargaPerolehan * 0.1) : 0);
   const masaManfaatTahun = Math.max(1, Number(asset.Masa_Manfaat) || 4);
   const masaManfaatBulan = masaManfaatTahun * 12;
 
@@ -55,6 +60,9 @@ export function calculateAssetDepreciation(
       bebanPenyusutanBulan: 0,
       bebanPenyusutanTahun: 0,
       bulanBerjalan: 0,
+      usiaTeks: '0 Bln',
+      sisaUmurBulan: masaManfaatBulan,
+      sisaUmurTeks: `${masaManfaatTahun} Thn`,
       akumulasiPenyusutan: 0,
       nilaiBukuSaatIni: 0,
       persentaseNilaiTersisa: 100,
@@ -67,6 +75,15 @@ export function calculateAssetDepreciation(
   const monthDiff = asOfDate.getMonth() - acqDate.getMonth();
   const rawMonths = yearDiff * 12 + monthDiff;
   const bulanBerjalan = Math.max(0, rawMonths);
+
+  const sisaUmurBulan = Math.max(0, masaManfaatBulan - bulanBerjalan);
+  const tahunUsia = Math.floor(bulanBerjalan / 12);
+  const bulanUsia = bulanBerjalan % 12;
+  const usiaTeks = tahunUsia > 0 ? `${tahunUsia} Thn ${bulanUsia} Bln` : `${bulanUsia} Bln`;
+
+  const tahunSisa = Math.floor(sisaUmurBulan / 12);
+  const bulanSisa = sisaUmurBulan % 12;
+  const sisaUmurTeks = sisaUmurBulan > 0 ? (tahunSisa > 0 ? `${tahunSisa} Thn ${bulanSisa} Bln` : `${bulanSisa} Bln`) : 'Masa Manfaat Habis';
 
   const totalDepreciable = Math.max(0, hargaPerolehan - nilaiSisa);
   const bebanPenyusutanBulan = Math.round(totalDepreciable / masaManfaatBulan);
@@ -85,6 +102,9 @@ export function calculateAssetDepreciation(
     bebanPenyusutanBulan,
     bebanPenyusutanTahun,
     bulanBerjalan,
+    usiaTeks,
+    sisaUmurBulan,
+    sisaUmurTeks,
     akumulasiPenyusutan,
     nilaiBukuSaatIni,
     persentaseNilaiTersisa,

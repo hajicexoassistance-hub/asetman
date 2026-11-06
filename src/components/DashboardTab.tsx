@@ -152,7 +152,35 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       </div>
 
       {/* ============================================================ */}
-      {/* 2. PHYSICAL CONDITION & OPERATIONAL AVAILABILITY CARD        */}
+      {/* 2. UNIT KERJA FILTER STRIP                                   */}
+      {/* ============================================================ */}
+      <div className="bg-[#F2F4F3] rounded-2xl p-3 border border-[#e2e6e4] space-y-1.5">
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="font-bold text-[#7F8C8D] uppercase tracking-wider flex items-center gap-1">
+            <Building2 className="w-3 h-3 text-[#2D7D62]" /> Filter Unit Kerja:
+          </span>
+          <span className="font-semibold text-[#2C3E50]">{selectedUnit}</span>
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          {unitList.map((unit, idx) => (
+            <button
+              key={`${unit}-${idx}`}
+              onClick={() => setSelectedUnit(unit)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
+                selectedUnit === unit
+                  ? 'bg-[#2D7D62] text-white border-[#2D7D62] shadow-xs'
+                  : 'bg-white text-[#2C3E50] border-[#e2e6e4] hover:bg-[#A8E6CF]/30'
+              }`}
+            >
+              {unit}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* 3. PHYSICAL CONDITION & OPERATIONAL AVAILABILITY CARD        */}
       {/* ============================================================ */}
       <AssetVisualSummaryCard assets={assets} loans={loans} selectedUnit={selectedUnit} />
 
@@ -263,34 +291,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               Belum ada transaksi peminjaman atau Berita Acara yang tercatat.
             </div>
           )}
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* 5. UNIT KERJA FILTER STRIP                                   */}
-      {/* ============================================================ */}
-      <div className="bg-[#F2F4F3] rounded-2xl p-3 border border-[#e2e6e4] space-y-1.5">
-        <div className="flex items-center justify-between text-[11px]">
-          <span className="font-bold text-[#7F8C8D] uppercase tracking-wider flex items-center gap-1">
-            <Building2 className="w-3 h-3 text-[#2D7D62]" /> Filter Berdasarkan Unit Kerja:
-          </span>
-          <span className="font-semibold text-[#2C3E50]">{selectedUnit}</span>
-        </div>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-          {unitList.map((unit, idx) => (
-            <button
-              key={`${unit}-${idx}`}
-              onClick={() => setSelectedUnit(unit)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
-                selectedUnit === unit
-                  ? 'bg-[#2D7D62] text-white border-[#2D7D62] shadow-xs'
-                  : 'bg-white text-[#2C3E50] border-[#e2e6e4] hover:bg-[#A8E6CF]/30'
-              }`}
-            >
-              {unit}
-            </button>
-          ))}
         </div>
       </div>
     </div>

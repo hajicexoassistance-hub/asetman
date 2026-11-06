@@ -218,6 +218,27 @@ function getInitialDataInternal(activeSheetName) {
   var sheetSO = ss.getSheetByName(targetSheetName) || sheetMaster;
   var assets = sheetToObjects(sheetSO);
 
+  // Auto-JOIN financial data from Master_Assets if viewing a session sheet
+  if (targetSheetName !== 'Master_Assets' && sheetMaster) {
+    var masterAssets = sheetToObjects(sheetMaster);
+    var masterMap = {};
+    masterAssets.forEach(function(m) {
+      if (m.ID_Asset) masterMap[String(m.ID_Asset).trim()] = m;
+    });
+    assets = assets.map(function(a) {
+      var id = String(a.ID_Asset || '').trim();
+      var mObj = masterMap[id] || {};
+      a.Harga_Perolehan = mObj.Harga_Perolehan !== undefined ? mObj.Harga_Perolehan : a.Harga_Perolehan;
+      a.Tanggal_Perolehan = mObj.Tanggal_Perolehan !== undefined ? mObj.Tanggal_Perolehan : a.Tanggal_Perolehan;
+      a.Masa_Manfaat = mObj.Masa_Manfaat !== undefined ? mObj.Masa_Manfaat : a.Masa_Manfaat;
+      a.Nilai_Sisa = mObj.Nilai_Sisa !== undefined ? mObj.Nilai_Sisa : a.Nilai_Sisa;
+      a.Nilai_Buku = mObj.Nilai_Buku !== undefined ? mObj.Nilai_Buku : a.Nilai_Buku;
+      a.Nomor_Seri = mObj.Nomor_Seri !== undefined ? mObj.Nomor_Seri : a.Nomor_Seri;
+      a.Jenis = mObj.Jenis !== undefined ? mObj.Jenis : a.Jenis;
+      return a;
+    });
+  }
+
   return {
     assets: assets,
     sessions: sessions,
@@ -258,6 +279,14 @@ function updateAssetInternal(payload) {
         sheetMaster.getRange(rowIdx, i + 1).setValue(payload[colName]);
       }
     }
+  } else {
+    var headers = sheetMaster.getRange(1, 1, 1, sheetMaster.getLastColumn()).getValues()[0];
+    var newRow = [];
+    for (var i = 0; i < headers.length; i++) {
+      var colName = headers[i];
+      newRow.push(payload[colName] !== undefined ? payload[colName] : '');
+    }
+    sheetMaster.appendRow(newRow);
   }
 
   return getInitialDataInternal();

@@ -295,18 +295,22 @@ export const AssetDetailDrawer: React.FC<AssetDetailDrawerProps> = ({
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-white/20 grid grid-cols-3 gap-2 text-[11px] text-white/90">
+              <div className="pt-2 border-t border-white/20 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-white/90">
                 <div>
                   <span className="text-white/60 block text-[10px]">Tgl Perolehan:</span>
                   <strong className="font-mono">{asset.Tanggal_Perolehan || asset.Tahun_Beli || '-'}</strong>
                 </div>
                 <div>
-                  <span className="text-white/60 block text-[10px]">Penyusutan Berjalan:</span>
-                  <strong className="font-mono">{calc.bulanBerjalan} Bulan</strong>
+                  <span className="text-white/60 block text-[10px]">Usia Aset (Otomatis):</span>
+                  <strong className="font-mono">{calc.usiaTeks}</strong>
                 </div>
                 <div>
-                  <span className="text-white/60 block text-[10px]">Nilai Residu (Sisa):</span>
-                  <strong className="text-[#A8E6CF] font-mono">{formatRupiah(calc.nilaiSisa)}</strong>
+                  <span className="text-white/60 block text-[10px]">Sisa Masa Manfaat:</span>
+                  <strong className="font-mono text-[#A8E6CF]">{calc.sisaUmurTeks}</strong>
+                </div>
+                <div>
+                  <span className="text-white/60 block text-[10px]">Nilai Residu:</span>
+                  <strong className="text-white font-mono">{formatRupiah(calc.nilaiSisa)}</strong>
                 </div>
               </div>
             </div>

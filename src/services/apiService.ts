@@ -521,8 +521,36 @@ export function normalizeRawAsset(raw: any, idx: number, seenIds: Map<string, nu
 
 export function normalizeAssetList(rawAssets: any[]): Asset[] {
   if (!Array.isArray(rawAssets)) return [];
+  const localMap = new Map(getLocalAssets().map((a) => [a.ID_Asset, a]));
   const seenIds = new Map<string, number>();
-  return rawAssets.map((a, idx) => normalizeRawAsset(a, idx, seenIds));
+  return rawAssets.map((raw, idx) => {
+    const normalized = normalizeRawAsset(raw, idx, seenIds);
+    const existing = localMap.get(normalized.ID_Asset);
+    if (existing) {
+      if ((normalized.Harga_Perolehan === undefined || normalized.Harga_Perolehan === 0) && existing.Harga_Perolehan) {
+        normalized.Harga_Perolehan = existing.Harga_Perolehan;
+      }
+      if ((normalized.Nilai_Buku === undefined || normalized.Nilai_Buku === 0) && existing.Nilai_Buku) {
+        normalized.Nilai_Buku = existing.Nilai_Buku;
+      }
+      if (!normalized.Tanggal_Perolehan && existing.Tanggal_Perolehan) {
+        normalized.Tanggal_Perolehan = existing.Tanggal_Perolehan;
+      }
+      if (!normalized.Tahun_Beli && existing.Tahun_Beli) {
+        normalized.Tahun_Beli = existing.Tahun_Beli;
+      }
+      if (!normalized.Nomor_Seri && existing.Nomor_Seri) {
+        normalized.Nomor_Seri = existing.Nomor_Seri;
+      }
+      if (!normalized.Masa_Manfaat && existing.Masa_Manfaat) {
+        normalized.Masa_Manfaat = existing.Masa_Manfaat;
+      }
+      if (!normalized.Nilai_Sisa && existing.Nilai_Sisa) {
+        normalized.Nilai_Sisa = existing.Nilai_Sisa;
+      }
+    }
+    return normalized;
+  });
 }
 
 export async function fetchInitialData(activeSheetName?: string): Promise<InitialDataResponse> {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Asset } from '../types';
 import { BottomSheet } from './BottomSheet';
+import { cleanDate } from '../utils/dateUtils';
 import { Edit2, ShieldAlert, Lock, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 
 interface FastEditAssetDrawerProps {
@@ -33,11 +34,16 @@ export const FastEditAssetDrawer: React.FC<FastEditAssetDrawerProps> = ({
       setNamaAsset(asset.Nama_Asset || '');
       setNomorSeri(asset.Nomor_Seri || '');
       setLokasi(asset.Lokasi || '');
-      const initHarga = asset.Harga_Perolehan !== undefined ? asset.Harga_Perolehan : (asset.Harga_Asal !== undefined ? asset.Harga_Asal : '');
+      const initHarga = asset.Harga_Perolehan !== undefined && asset.Harga_Perolehan !== null ? asset.Harga_Perolehan : (asset.Harga_Asal !== undefined ? asset.Harga_Asal : '');
       setHargaPerolehan(initHarga);
-      setTanggalPerolehan(asset.Tanggal_Perolehan || (asset.Tahun_Beli ? `${asset.Tahun_Beli}-01-01` : ''));
-      setMasaManfaat(asset.Masa_Manfaat || 4);
-      setNilaiSisa(asset.Nilai_Sisa !== undefined ? asset.Nilai_Sisa : (initHarga ? Math.round(Number(initHarga) * 0.1) : 0));
+      
+      const rawTgl = asset.Tanggal_Perolehan || (asset.Tahun_Beli ? `${asset.Tahun_Beli}-01-01` : '');
+      setTanggalPerolehan(cleanDate(rawTgl) || '');
+      
+      setMasaManfaat(asset.Masa_Manfaat !== undefined && asset.Masa_Manfaat !== null ? Number(asset.Masa_Manfaat) : 4);
+      
+      const initSisa = asset.Nilai_Sisa !== undefined && asset.Nilai_Sisa !== null ? Number(asset.Nilai_Sisa) : (initHarga !== '' ? Math.round(Number(initHarga) * 0.1) : 0);
+      setNilaiSisa(initSisa);
       setKeterangan(asset.Keterangan_SO || '');
     }
   }, [asset, isOpen]);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Asset, AssetLoan, BeritaAcaraDoc } from '../types';
 import { BottomSheet } from './BottomSheet';
-import { formatDateIndonesian, formatRupiah } from '../utils/dateUtils';
+import { formatDateIndonesian, formatRupiah, cleanDate } from '../utils/dateUtils';
 import { calculateAssetDepreciation } from '../utils/depreciation';
 import { generateCode128Svg, generateQrCodeSvg } from '../utils/barcodeUtils';
 import {
@@ -298,7 +298,7 @@ export const AssetDetailDrawer: React.FC<AssetDetailDrawerProps> = ({
               <div className="pt-2 border-t border-white/20 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-white/90">
                 <div>
                   <span className="text-white/60 block text-[10px]">Tgl Perolehan:</span>
-                  <strong className="font-mono">{asset.Tanggal_Perolehan || asset.Tahun_Beli || '-'}</strong>
+                  <strong className="font-mono">{cleanDate(asset.Tanggal_Perolehan) || asset.Tahun_Beli || '-'}</strong>
                 </div>
                 <div>
                   <span className="text-white/60 block text-[10px]">Usia Aset (Otomatis):</span>

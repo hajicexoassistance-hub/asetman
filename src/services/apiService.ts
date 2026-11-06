@@ -1,7 +1,7 @@
 import { Asset, SesiSO, InitialDataResponse, ConditionType, RincianKondisi, AssetLoan, BeritaAcaraDoc, LogPenyusutan } from '../types';
 import { calculateAssetDepreciation, syncAssetBookValue, runPeriodicDepreciationBatch } from '../utils/depreciation';
 
-export const DEFAULT_GAS_WEB_APP_URL: string = "https://script.google.com/macros/s/AKfycbwQeR0vlOVNmI9UwVOijAd20mvpjfuMw9TCRElhK7T6L21VGUbCjHwMPumIY1hO1DO5/exec";
+export const DEFAULT_GAS_WEB_APP_URL: string = "";
 
 const STORAGE_KEYS = {
   GAS_URL: 'so_gas_web_app_url',
@@ -423,6 +423,17 @@ function createLocalSessionInternal(payload: {
   };
 }
 
+export function cleanDate(d: any): string | undefined {
+  if (!d) return undefined;
+  const s = String(d).trim();
+  if (!s) return undefined;
+  if (s.includes('T')) return s.substring(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) return parsed.toISOString().substring(0, 10);
+  return s;
+}
+
 export function normalizeRawAsset(raw: any, idx: number, seenIds: Map<string, number>): Asset {
   let rawId = String(raw.ID_Asset || raw.Kode_Asset || raw['ID Asset'] || '').trim();
   if (!rawId) {
@@ -468,11 +479,20 @@ export function normalizeRawAsset(raw: any, idx: number, seenIds: Map<string, nu
   const isAudited = Boolean(raw.Tanggal_SO || raw.Status_Audit === 'Sudah SO');
 
   const hargaPerolehan = Number(raw.Harga_Perolehan || raw['Harga Perolehan'] || raw.Harga_Asal || raw['Harga Asal']) || undefined;
-  const tglPerolehan = raw.Tanggal_Perolehan || raw['Tanggal Perolehan'] || raw.Tgl_Beli || (raw.Tahun_Beli ? `${raw.Tahun_Beli}-01-01` : undefined);
+  const rawTgl = raw.Tanggal_Perolehan || raw['Tanggal Perolehan'] || raw.Tgl_Beli || (raw.Tahun_Beli ? `${raw.Tahun_Beli}-01-01` : undefined);
+  const tglPerolehan = cleanDate(rawTgl);
   const masaManfaat = Number(raw.Masa_Manfaat || raw['Masa Manfaat'] || raw.Umur_Ekonomis) || 4;
-  const nilaiSisa = Number(raw.Nilai_Sisa || raw['Nilai Sisa'] || raw.Nilai_Residu) || (hargaPerolehan ? Math.round(hargaPerolehan * 0.1) : 0);
   
-  let nilaiBuku = raw.Nilai_Buku !== undefined && raw.Nilai_Buku !== '' ? Number(raw.Nilai_Buku) : undefined;
+  const rawSisa = raw.Nilai_Sisa !== undefined && raw.Nilai_Sisa !== null && raw.Nilai_Sisa !== '' 
+    ? raw.Nilai_Sisa 
+    : (raw['Nilai Sisa'] !== undefined && raw['Nilai Sisa'] !== null && raw['Nilai Sisa'] !== '' 
+      ? raw['Nilai Sisa'] 
+      : raw.Nilai_Residu);
+  const nilaiSisa = rawSisa !== undefined && rawSisa !== null && rawSisa !== '' && !isNaN(Number(rawSisa))
+    ? Number(rawSisa)
+    : (hargaPerolehan ? Math.round(hargaPerolehan * 0.1) : 0);
+  
+  let nilaiBuku = raw.Nilai_Buku !== undefined && raw.Nilai_Buku !== '' && !isNaN(Number(raw.Nilai_Buku)) ? Number(raw.Nilai_Buku) : undefined;
   if (nilaiBuku === undefined && hargaPerolehan) {
     const calc = calculateAssetDepreciation({
       Harga_Perolehan: hargaPerolehan,
@@ -527,26 +547,26 @@ export function normalizeAssetList(rawAssets: any[]): Asset[] {
     const normalized = normalizeRawAsset(raw, idx, seenIds);
     const existing = localMap.get(normalized.ID_Asset);
     if (existing) {
-      if ((normalized.Harga_Perolehan === undefined || normalized.Harga_Perolehan === 0) && existing.Harga_Perolehan) {
+      if (existing.Harga_Perolehan !== undefined && existing.Harga_Perolehan !== null) {
         normalized.Harga_Perolehan = existing.Harga_Perolehan;
       }
-      if ((normalized.Nilai_Buku === undefined || normalized.Nilai_Buku === 0) && existing.Nilai_Buku) {
-        normalized.Nilai_Buku = existing.Nilai_Buku;
+      if (existing.Nilai_Sisa !== undefined && existing.Nilai_Sisa !== null) {
+        normalized.Nilai_Sisa = existing.Nilai_Sisa;
       }
-      if (!normalized.Tanggal_Perolehan && existing.Tanggal_Perolehan) {
-        normalized.Tanggal_Perolehan = existing.Tanggal_Perolehan;
-      }
-      if (!normalized.Tahun_Beli && existing.Tahun_Beli) {
-        normalized.Tahun_Beli = existing.Tahun_Beli;
-      }
-      if (!normalized.Nomor_Seri && existing.Nomor_Seri) {
-        normalized.Nomor_Seri = existing.Nomor_Seri;
-      }
-      if (!normalized.Masa_Manfaat && existing.Masa_Manfaat) {
+      if (existing.Masa_Manfaat !== undefined && existing.Masa_Manfaat !== null) {
         normalized.Masa_Manfaat = existing.Masa_Manfaat;
       }
-      if (!normalized.Nilai_Sisa && existing.Nilai_Sisa) {
-        normalized.Nilai_Sisa = existing.Nilai_Sisa;
+      if (existing.Tanggal_Perolehan) {
+        normalized.Tanggal_Perolehan = existing.Tanggal_Perolehan;
+      }
+      if (existing.Nilai_Buku !== undefined && existing.Nilai_Buku !== null) {
+        normalized.Nilai_Buku = existing.Nilai_Buku;
+      }
+      if (existing.Nomor_Seri) {
+        normalized.Nomor_Seri = existing.Nomor_Seri;
+      }
+      if (existing.Lokasi) {
+        normalized.Lokasi = existing.Lokasi;
       }
     }
     return normalized;

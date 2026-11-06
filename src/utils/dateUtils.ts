@@ -1,6 +1,17 @@
 /**
  * Formats ISO or YYYY-MM-DD date strings into human-readable Indonesian format
  */
+export function cleanDate(d?: string | null): string | undefined {
+  if (!d) return undefined;
+  const s = String(d).trim();
+  if (!s) return undefined;
+  if (s.includes('T')) return s.substring(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) return parsed.toISOString().substring(0, 10);
+  return s;
+}
+
 export function formatDateIndonesian(dateStr?: string | null): string {
   if (!dateStr || dateStr === '-' || dateStr === 'Sebelumnya') return dateStr || '-';
 

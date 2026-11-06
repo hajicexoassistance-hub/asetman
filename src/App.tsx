@@ -966,6 +966,8 @@ export default function App() {
         userRole={userRole}
         assignedUnit={assignedUnit}
         onOpenScanner={() => setIsScannerOpen(true)}
+        activeTab={activeTab}
+        isAuditViewActive={isAuditViewActive}
       />
 
       {/* Main Viewport Content */}

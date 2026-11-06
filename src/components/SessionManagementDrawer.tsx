@@ -114,7 +114,7 @@ export const SessionManagementDrawer: React.FC<SessionManagementDrawerProps> = (
     <BottomSheet
       isOpen={isOpen}
       onClose={onClose}
-      title="Daftar & Manajemen Sesi Stock Opname"
+      title="Manajemen Sesi SO"
       subtitle="Kelola status aktif, edit, hapus, dan lihat rekapitulasi pelaporan audit"
       maxHeightClass="max-h-[92vh]"
     >

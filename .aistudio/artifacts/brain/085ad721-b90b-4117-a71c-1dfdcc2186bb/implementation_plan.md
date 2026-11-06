@@ -1,53 +1,44 @@
-# Rencana Fitur: Single Compact Donut Card pada BA Vault
+# Rencana Fitur: Pencarian & Kamera Scanner Kontekstual di Header
 
-Mengonsolidasi 4 kartu KPI terpisah di halaman **Arsip Berita Acara (BA Vault)** menjadi **satu kartu padat tunggal (Horizontal Split)** yang dilengkapi dengan **SVG Donut Chart mini** di sisi kiri dan **legenda 4 statistik ringkas** di sisi kanan untuk menghemat ruang vertikal dan memperjelas proporsi dokumen secara visual.
+Menyesuaikan visibilitas bilah **Pencarian & Kamera Scanner** di komponen `Header` secara kontekstual sesuai halaman yang aktif. Bilah pencarian hanya muncul di halaman yang relevan dengan pencarian barang/arsip, dan menyembunyikannya di halaman Beranda & Setelan agar Header menjadi lebih tipis dan hemat ruang.
 
 ---
 
-## 1. Rancangan Visual & Sisi UI/UX
+## 1. Aturan Visibilitas Per Halaman
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ [Arsip Berita Acara (BA Vault)]                         [ Ekspor Excel ]    │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ ┌─────────────────────────────────────────────────────────────────────────┐ │
-│ │ ┌─────────────┐  │  ● Total BA Terbit       : 7 (5 Bln Ini)             │ │
-│ │ │   (Donut)   │  │  ● Peminjaman Aktif      : 4 (1 Late)               │ │
-│ │ │    7 BA     │  │  ● Mutasi & BAST Terima  : 1                         │ │
-│ │ └─────────────┘  │  ● Pemusnahan / Afkir    : 0                         │ │
-│ └─────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
+│ TAB ACTIVE               │ BILAH PENCARIAN & KAMERA SCANNER                 │
+├──────────────────────────┼──────────────────────────────────────────────────┤
+│ Aset ('assets')          │ TAMPIL (Pencarian Katalog & Barcode Scan)        │
+│ POS ('pos')              │ TAMPIL (Pencarian & Fast Checkout Scan)          │
+│ Arsip ('archive')        │ TAMPIL (Pencarian No. BA, Tag ID, & PIC)         │
+│ Audit SO (Audit View)    │ TAMPIL (Verifikasi SO & Scan Aset)               │
+├──────────────────────────┼──────────────────────────────────────────────────┤
+│ Beranda ('dashboard')    │ SEMBUNYI (Header Tipis Single-Row ~40px)         │
+│ Setelan ('settings')     │ SEMBUNYI (Header Tipis Single-Row ~40px)         │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
-
-### Key Highlights Design:
-1. **Compact Horizontal Split**: Satu kontainer kartu (`p-3 bg-white border rounded-xl flex items-center gap-4`).
-2. **SVG Donut Chart Mini (Kiri)**:
-   - Diameter $80\text{px}$, stroke-width $8\text{px}$.
-   - 4 segmen warna SVG sesuai jenis BA:
-     - Emerald (`#2D7D62`): BAST Penerimaan
-     - Amber (`#F59E0B`): BAST Peminjaman Aktif
-     - Rose (`#EF4444`): Overdue Peminjaman
-     - Purple (`#8B5CF6`): BA Penghapusan / Afkir
-   - **Center Label**: Angka Total BA (`7 BA`) tercetak di pusat lingkaran.
-3. **Legenda 4 Statistik Ringkas (Kanan)**:
-   - Grid 2-kolom atau daftar 4 baris mini dengan titik warna (color indicator dot).
-   - Menampilkan statistik real-time dengan angka `font-mono tabular-nums`.
 
 ---
 
-## 2. Rencana Implementasi
+## 2. Rencana Perubahan Kode
 
-1. **Komponen `BaVaultTab.tsx`**:
-   - Ganti blok `grid grid-cols-2 lg:grid-cols-4 gap-2` yang lama dengan `CompactDonutKpiCard`.
-   - Hitung persentase segmen Donut Chart secara otomatis berdasarkan data `docs` yang sudah di-filter.
-2. **Komponen Inline `SvgDonutChart`**:
-   - Buat komponen helper SVG donut yang menghitung `strokeDasharray` dan `strokeDashoffset` berdasarkan proporsi masing-masing jenis BA.
+1. **Perbarui `Header.tsx`**:
+   - Tambahkan prop `activeTab?: string` dan `isAuditViewActive?: boolean` (atau `showSearchRow?: boolean`).
+   - Tentukan variabel `showSearchRow = isAuditViewActive || ['assets', 'pos', 'archive'].includes(activeTab)`.
+   - Render baris pencarian & tombol kamera secara kondisional (`{showSearchRow && (...)}`).
+   - Sesuaikan padding header secara otomatis (`py-1.5` saat sembunyi, `py-2.5` saat tampil).
+
+2. **Perbarui `App.tsx`**:
+   - Teruskan `activeTab` dan `isAuditViewActive` ke komponen `<Header />`.
+
 3. **Verifikasi**:
-   - Jalankan `compile_applet` dan `lint_applet` untuk memastikan 0 error.
-   - Uji kompilasi produksi `npm run build`.
+   - Jalankan `compile_applet` dan `lint_applet` bersamaan untuk memastikan 0 error.
+   - Jalankan `npm run build` untuk memverifikasi bundle produksi.
 
 ---
 
 ## 3. Pertanyaan Konfirmasi
 
-Apakah rencana desain **Single Compact Donut Card (Horizontal Split)** ini sudah sesuai untuk diimplementasikan ke kode?
+Apakah rencana pencarian & kamera scanner kontekstual di Header ini sudah sesuai untuk diimplementasikan?

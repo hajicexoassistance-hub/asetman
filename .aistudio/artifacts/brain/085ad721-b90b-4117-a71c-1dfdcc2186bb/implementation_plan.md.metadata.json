@@ -1,6 +1,6 @@
 {
-  "summary": "Rencana konsolidasi 4 kartu KPI di BA Vault menjadi 1 kartu padat Horizontal Split dengan SVG Donut Chart mini di sebelah kiri (Center Label Total BA) dan legenda 4 statistik ringkas di sebelah kanan.",
-  "updatedAt": "2026-11-06T15:43:41.419570038Z",
+  "summary": "Rencana pencarian & kamera scanner kontekstual di Header: Tampilkan di Tab Aset, POS, Arsip, & Audit SO; sembunyikan di Beranda & Setelan untuk menghasilkan Header super-tipis (Compact 40px).",
+  "updatedAt": "2026-11-06T16:29:03.501354684Z",
   "requestFeedback": true,
   "userFacing": true
 }

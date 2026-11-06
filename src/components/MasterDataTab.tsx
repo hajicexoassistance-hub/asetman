@@ -7,6 +7,7 @@ interface MasterDataTabProps {
   onAddCategory: (cat: string) => void;
   onAddUnit: (unit: string) => void;
   onShowToast: (text: string, type?: 'success' | 'error' | 'info') => void;
+  hideHeader?: boolean;
 }
 
 export const MasterDataTab: React.FC<MasterDataTabProps> = ({
@@ -15,6 +16,7 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
   onAddCategory,
   onAddUnit,
   onShowToast,
+  hideHeader = true,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'kategori' | 'jenis' | 'cabang' | 'unit' | 'karyawan' | 'vendor' | 'kondisi'>('kategori');
 
@@ -116,28 +118,30 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
   };
 
   return (
-    <div className="space-y-4 pb-24 pt-2 animate-in fade-in text-xs text-[#2C3E50]">
-      {/* Title Header */}
-      <div>
-        <h2 className="text-base font-bold text-[#2C3E50] tracking-tight flex items-center gap-2">
-          <Database className="w-5 h-5 text-[#2D7D62]" />
-          Master Data & Manajemen Entitas
-        </h2>
-        <p className="text-[11px] text-[#7F8C8D] mt-0.5">
-          Pengelolaan lengkap CRUD Kategori, Jenis, Cabang, Unit, Karyawan, Vendor, & Status Kondisi Aset
-        </p>
-      </div>
+    <div className="space-y-2.5 animate-in fade-in text-xs text-[#2C3E50]">
+      {/* Title Header (Only if not hidden by parent) */}
+      {!hideHeader && (
+        <div className="px-0.5">
+          <h2 className="text-sm font-bold text-[#2C3E50] tracking-tight flex items-center gap-1.5">
+            <Database className="w-4 h-4 text-[#2D7D62]" />
+            <span>Master Data & Manajemen Entitas</span>
+          </h2>
+          <p className="text-[10px] text-[#7F8C8D]">
+            Pengelolaan CRUD Kategori, Jenis, Cabang, Unit, Karyawan, Vendor, & Status Kondisi
+          </p>
+        </div>
+      )}
 
       {/* Sub-Tab Selector Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar bg-[#F2F4F3] p-1.5 rounded-2xl border border-[#e2e6e4]">
+      <div className="flex items-center gap-1 overflow-x-auto pb-0.5 no-scrollbar bg-[#F2F4F3] p-1.5 rounded-xl border border-[#e2e6e4]">
         {[
           { key: 'kategori', label: 'Kategori', icon: Tag, count: localCategories.length },
           { key: 'jenis', label: 'Jenis Aset', icon: Layers, count: localJenis.length },
           { key: 'cabang', label: 'Cabang', icon: Building2, count: localCabang.length },
           { key: 'unit', label: 'Unit Kerja', icon: Building2, count: localUnits.length },
-          { key: 'karyawan', label: 'Karyawan / PIC', icon: Users, count: localKaryawan.length },
-          { key: 'vendor', label: 'Vendor / Supplier', icon: ShieldCheck, count: localVendors.length },
-          { key: 'kondisi', label: 'Status Kondisi', icon: CheckCircle2, count: localKondisi.length },
+          { key: 'karyawan', label: 'Karyawan', icon: Users, count: localKaryawan.length },
+          { key: 'vendor', label: 'Vendor', icon: ShieldCheck, count: localVendors.length },
+          { key: 'kondisi', label: 'Kondisi', icon: CheckCircle2, count: localKondisi.length },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.key;
@@ -146,9 +150,9 @@ export const MasterDataTab: React.FC<MasterDataTabProps> = ({
               key={tab.key}
               type="button"
               onClick={() => setActiveSubTab(tab.key as any)}
-              className={`px-3 py-2 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 text-xs cursor-pointer ${
+              className={`px-2.5 py-1.5 rounded-lg font-bold whitespace-nowrap transition-all flex items-center gap-1 text-[11px] cursor-pointer ${
                 isActive
-                  ? 'bg-[#2D7D62] text-white shadow-xs'
+                  ? 'bg-[#2D7D62] text-white shadow-2xs'
                   : 'bg-white text-[#2C3E50] hover:bg-slate-50 border border-[#e2e6e4]'
               }`}
             >

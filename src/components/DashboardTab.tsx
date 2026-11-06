@@ -75,7 +75,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const recentBAs = beritaAcaraDocs.slice(0, 3);
 
   return (
-    <div className="space-y-3.5 pb-20 pt-2 animate-in fade-in text-[#2C3E50]">
+    <div className="space-y-3.5 pb-4 pt-2 animate-in fade-in text-[#2C3E50]">
       {/* Onboarding Callout if database is empty */}
       {assets.length === 0 && !isConnected && (
         <div className="bg-[#2C3E50] text-white rounded-2xl p-4 shadow-lg space-y-3">

@@ -89,7 +89,8 @@ function setupDatabase() {
   var headersBA = [
     'ID_BA', 'Nomor_BA', 'Jenis_BA', 'Tanggal_BA', 'ID_Asset', 'Nama_Asset', 'Kategori',
     'Unit_Asal', 'Unit_Tujuan', 'Penanggung_Jawab_Lama', 'Penanggung_Jawab_Baru',
-    'Alasan_Keterangan', 'Nama_Pihak_1', 'Jabatan_Pihak_1', 'Nama_Pihak_2', 'Jabatan_Pihak_2', 'Status_BA'
+    'Alasan_Keterangan', 'Nama_Pihak_1', 'Jabatan_Pihak_1', 'Nama_Pihak_2', 'Jabatan_Pihak_2',
+    'Status_BA', 'Status_Siklus', 'Ref_BA_Pasangan', 'Snapshot_Aset_JSON', 'TTD_Pihak_1', 'TTD_Pihak_2'
   ];
   if (sheetBA.getLastRow() === 0) {
     sheetBA.appendRow(headersBA);
@@ -97,7 +98,19 @@ function setupDatabase() {
     sheetBA.setFrozenRows(1);
   }
 
-  // 8. Setup Sheet SO_SESI_001 (Initial active session sheet)
+  // 8. Setup Sheet Log_Transaksi
+  var sheetLogTx = ss.getSheetByName('Log_Transaksi') || ss.insertSheet('Log_Transaksi');
+  var headersLogTx = [
+    'ID_Transaksi', 'Tanggal', 'Jenis_Aksi', 'ID_Asset_List', 'Pihak_1', 'Pihak_2',
+    'Unit_Asal', 'Unit_Tujuan', 'Catatan', 'Executor'
+  ];
+  if (sheetLogTx.getLastRow() === 0) {
+    sheetLogTx.appendRow(headersLogTx);
+    sheetLogTx.getRange(1, 1, 1, headersLogTx.length).setFontWeight('bold').setBackground('#2D7D62').setFontColor('#ffffff');
+    sheetLogTx.setFrozenRows(1);
+  }
+
+  // 9. Setup Sheet SO_SESI_001 (Initial active session sheet)
   var sheetSO = ss.getSheetByName('SO_SESI_001') || ss.insertSheet('SO_SESI_001');
   var headersSO = [
     'ID_Asset', 'Nama_Asset', 'Kategori', 'Unit_Kerja', 'Lokasi', 'Penanggung_Jawab',

@@ -16,9 +16,11 @@ import {
   FileCheck2,
   ArrowRight,
   Filter,
+  FileText,
 } from 'lucide-react';
 import { formatDateIndonesian } from '../utils/dateUtils';
 import { exportSingleSessionReportToExcel } from '../services/excelService';
+import { PdfPreviewModal } from './PdfPreviewModal';
 
 interface SessionReportModalProps {
   isOpen: boolean;
@@ -36,6 +38,7 @@ export const SessionReportModal: React.FC<SessionReportModalProps> = ({
   onCreateBAForAsset,
 }) => {
   const [filterCondition, setFilterCondition] = useState<string>('Semua');
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   if (!isOpen || !session) return null;
 
@@ -78,8 +81,6 @@ export const SessionReportModal: React.FC<SessionReportModalProps> = ({
   });
 
   const totalFisik = totalBaik + totalRR + totalRB + totalHilang + totalMusnah;
-
-  // Problematic assets needing Berita Acara
   const criticalAssets = scopedAssets.filter(
     (a) => a.Kondisi === 'Rusak Berat' || a.Kondisi === 'Hilang' || a.Kondisi === 'Musnah'
   );
@@ -161,20 +162,6 @@ export const SessionReportModal: React.FC<SessionReportModalProps> = ({
                 style={{ width: `${percentComplete}%` }}
               />
             </div>
-
-            {/* Scope Recap */}
-            <div className="pt-2 border-t border-white/15 flex items-center gap-2 flex-wrap text-[11px] text-[#A8E6CF]">
-              <span>Scope:</span>
-              <span className="bg-white/15 text-white px-2 py-0.5 rounded-md font-semibold">
-                Unit: {targetUnit}
-              </span>
-              <span className="bg-white/15 text-white px-2 py-0.5 rounded-md font-semibold">
-                Kategori: {scopeCat}
-              </span>
-              <span className="bg-white/15 text-white px-2 py-0.5 rounded-md font-semibold">
-                Ruang: {scopeLoc}
-              </span>
-            </div>
           </div>
 
           {/* Physical Condition Breakdown Grid */}
@@ -192,11 +179,7 @@ export const SessionReportModal: React.FC<SessionReportModalProps> = ({
                 <span className="text-lg font-black font-mono tabular-nums mt-0.5 block">
                   {totalBaik}
                 </span>
-                <span className="text-[10px] text-emerald-700">
-                  {totalFisik > 0 ? Math.round((totalBaik / totalFisik) * 100) : 0}% dari total
-                </span>
               </div>
-
               <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950">
                 <span className="text-[10px] text-amber-700 font-bold block flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5" /> Rusak Ringan
@@ -204,11 +187,7 @@ export const SessionReportModal: React.FC<SessionReportModalProps> = ({
                 <span className="text-lg font-black font-mono tabular-nums mt-0.5 block">
                   {totalRR}
                 </span>
-                <span className="text-[10px] text-amber-700">
-                  {totalFisik > 0 ? Math.round((totalRR / totalFisik) * 100) : 0}% dari total
-                </span>
               </div>
-
               <div className="p-3 rounded-2xl bg-orange-50 border border-orange-200 text-orange-950">
                 <span className="text-[10px] text-orange-700 font-bold block flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5" /> Rusak Berat
@@ -216,11 +195,7 @@ export const SessionReportModal: React.FC<SessionReportModalProps> = ({
                 <span className="text-lg font-black font-mono tabular-nums mt-0.5 block">
                   {totalRB}
                 </span>
-                <span className="text-[10px] text-orange-700">
-                  {totalFisik > 0 ? Math.round((totalRB / totalFisik) * 100) : 0}% dari total
-                </span>
               </div>
-
               <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950">
                 <span className="text-[10px] text-rose-700 font-bold block flex items-center gap-1">
                   <ShieldAlert className="w-3.5 h-3.5" /> Hilang
@@ -228,11 +203,7 @@ export const SessionReportModal: React.FC<SessionReportModalProps> = ({
                 <span className="text-lg font-black font-mono tabular-nums mt-0.5 block">
                   {totalHilang}
                 </span>
-                <span className="text-[10px] text-rose-700">
-                  {totalFisik > 0 ? Math.round((totalHilang / totalFisik) * 100) : 0}% dari total
-                </span>
               </div>
-
               <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200 text-purple-950">
                 <span className="text-[10px] text-purple-700 font-bold block flex items-center gap-1">
                   <Flame className="w-3.5 h-3.5" /> Musnah
@@ -240,147 +211,13 @@ export const SessionReportModal: React.FC<SessionReportModalProps> = ({
                 <span className="text-lg font-black font-mono tabular-nums mt-0.5 block">
                   {totalMusnah}
                 </span>
-                <span className="text-[10px] text-purple-700">
-                  {totalFisik > 0 ? Math.round((totalMusnah / totalFisik) * 100) : 0}% dari total
-                </span>
               </div>
-            </div>
-          </div>
-
-          {/* Critical Assets Alert for Berita Acara */}
-          {criticalAssets.length > 0 && (
-            <div className="p-3.5 bg-rose-50/70 border border-rose-200 rounded-2xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-rose-900 flex items-center gap-1.5">
-                  <ShieldAlert className="w-4 h-4 text-rose-600" />
-                  Temuan Kritis: {criticalAssets.length} Aset Butuh Berita Acara
-                </span>
-                <span className="text-[10px] text-rose-700 font-medium">
-                  Perlu Penghapusan / Mutasi
-                </span>
-              </div>
-
-              <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                {criticalAssets.map((crit, idx) => (
-                  <div
-                    key={`crit-${crit.ID_Asset}-${idx}`}
-                    className="p-2 bg-white rounded-xl border border-rose-200 flex items-center justify-between text-xs shadow-2xs"
-                  >
-                    <div className="min-w-0 pr-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-bold text-rose-700">{crit.ID_Asset}</span>
-                        <span className="font-bold text-[#2C3E50] truncate">{crit.Nama_Asset}</span>
-                      </div>
-                      <p className="text-[10px] text-[#7F8C8D]">
-                        Kondisi: <strong className="text-rose-800">{crit.Kondisi}</strong> · PIC: {crit.Penanggung_Jawab} ({crit.Unit_Kerja})
-                      </p>
-                    </div>
-
-                    {onCreateBAForAsset && (
-                      <button
-                        onClick={() => {
-                          onClose();
-                          onCreateBAForAsset(crit);
-                        }}
-                        className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg flex items-center gap-1 shrink-0 transition-colors"
-                      >
-                        <FileCheck2 className="w-3 h-3" />
-                        <span>Buat BA</span>
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Detailed Item List with Filter */}
-          <div className="space-y-2 pt-1">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-[#2C3E50] uppercase tracking-wider">
-                Daftar Barang Sesi Ini ({displayedAssets.length})
-              </h3>
-
-              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar text-[10px]">
-                {['Semua', 'Baik', 'Rusak Ringan', 'Rusak Berat', 'Hilang', 'Musnah'].map((cond, idx) => (
-                  <button
-                    key={`srm-cond-${cond}-${idx}`}
-                    onClick={() => setFilterCondition(cond)}
-                    className={`px-2 py-0.5 rounded-lg font-medium transition-colors ${
-                      filterCondition === cond
-                        ? 'bg-[#2D7D62] text-white font-bold'
-                        : 'bg-[#F2F4F3] text-[#7F8C8D] hover:bg-white border border-[#e2e6e4]'
-                    }`}
-                  >
-                    {cond}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="border border-[#e2e6e4] rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead className="bg-[#F8FAFC] text-[#7F8C8D] border-b border-[#e2e6e4] text-[10px] uppercase font-bold sticky top-0">
-                  <tr>
-                    <th className="p-2.5 pl-3">Aset</th>
-                    <th className="p-2.5">Unit / Lokasi</th>
-                    <th className="p-2.5 text-center">Status</th>
-                    <th className="p-2.5 text-center">Kondisi</th>
-                    <th className="p-2.5 text-right pr-3">Jml Fisik</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#e2e6e4]">
-                  {displayedAssets.map((asset, idx) => (
-                    <tr key={`srm-asset-${asset.ID_Asset}-${idx}`} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-2.5 pl-3 min-w-[140px]">
-                        <span className="font-mono font-bold text-blue-600 block text-[11px]">
-                          {asset.ID_Asset}
-                        </span>
-                        <span className="font-semibold text-[#2C3E50] line-clamp-1">
-                          {asset.Nama_Asset}
-                        </span>
-                      </td>
-                      <td className="p-2.5 text-[11px] text-[#7F8C8D]">
-                        <span className="font-medium text-[#2C3E50] block">{asset.Unit_Kerja}</span>
-                        <span>{asset.Lokasi || '-'}</span>
-                      </td>
-                      <td className="p-2.5 text-center">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                            asset.Status_Audit === 'Sudah SO'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          {asset.Status_Audit}
-                        </span>
-                      </td>
-                      <td className="p-2.5 text-center">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                            asset.Kondisi === 'Baik'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                              : asset.Kondisi === 'Rusak Ringan'
-                              ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                              : 'bg-rose-50 text-rose-800 border border-rose-200'
-                          }`}
-                        >
-                          {asset.Kondisi}
-                        </span>
-                      </td>
-                      <td className="p-2.5 pr-3 text-right font-mono font-bold tabular-nums">
-                        {asset.Jumlah} Unit
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-[#e2e6e4] bg-[#F8FAFC] flex items-center justify-between gap-3 shrink-0">
+        <div className="p-4 border-t border-[#e2e6e4] bg-[#F8FAFC] flex items-center justify-between gap-3 shrink-0 flex-wrap">
           <button
             onClick={onClose}
             className="px-4 py-2.5 rounded-xl border border-[#e2e6e4] text-[#2C3E50] font-bold text-xs hover:bg-[#F2F4F3] transition-colors"
@@ -388,15 +225,87 @@ export const SessionReportModal: React.FC<SessionReportModalProps> = ({
             Tutup
           </button>
 
-          <button
-            onClick={handleExport}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-2 transition-all active:scale-98"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Download Laporan Excel (.xlsx)</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsPdfModalOpen(true)}
+              className="py-2.5 px-4 rounded-xl bg-[#2D7D62] hover:bg-[#23634e] text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Lihat Laporan PDF</span>
+            </button>
+
+            <button
+              onClick={handleExport}
+              className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Excel (.xlsx)</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* PDF Preview Modal for Stock Opname Report */}
+      <PdfPreviewModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        title={`Laporan Resmi Stock Opname`}
+        subtitle={`Sesi: ${session.Nama_Sesi} (${session.ID_Sesi})`}
+        filename={`Laporan-Stock-Opname-${session.ID_Sesi}`}
+      >
+        <div className="space-y-6 text-slate-900 font-serif text-xs leading-relaxed">
+          <div className="text-center border-b-2 border-slate-900 pb-3 mb-4">
+            <h2 className="text-base font-extrabold tracking-wide uppercase text-slate-950 font-sans">
+              LAPORAN RESMI HASIL STOCK OPNAME ASET
+            </h2>
+            <p className="text-[10px] text-slate-600 font-sans">
+              Sesi: {session.Nama_Sesi} · ID: {session.ID_Sesi} · Auditor: {session.Petugas_Utama}
+            </p>
+          </div>
+
+          <div className="space-y-2 font-sans mb-4">
+            <p><strong>Tanggal Mulai:</strong> {formatDateIndonesian(session.Tanggal_Mulai)}</p>
+            <p><strong>Target Unit Kerja:</strong> {targetUnit}</p>
+            <p><strong>Tingkat Ketercapaian:</strong> {percentComplete}% ({verifiedAssets} / {totalAssets} barang terverifikasi)</p>
+          </div>
+
+          <table className="w-full border-collapse border border-slate-800 text-[11px] mb-4 font-sans">
+            <thead>
+              <tr className="bg-slate-100 text-slate-900 border-b border-slate-800 font-bold">
+                <th className="border border-slate-800 p-1.5 text-center w-10">No</th>
+                <th className="border border-slate-800 p-1.5 text-left">Kode Aset</th>
+                <th className="border border-slate-800 p-1.5 text-left">Nama Barang</th>
+                <th className="border border-slate-800 p-1.5 text-left">Unit / Lokasi</th>
+                <th className="border border-slate-800 p-1.5 text-center">Status Audit</th>
+                <th className="border border-slate-800 p-1.5 text-center">Kondisi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {scopedAssets.map((item, idx) => (
+                <tr key={`pdf-so-${item.ID_Asset}-${idx}`}>
+                  <td className="border border-slate-800 p-1.5 text-center font-bold">{idx + 1}</td>
+                  <td className="border border-slate-800 p-1.5 font-mono font-bold">{item.ID_Asset}</td>
+                  <td className="border border-slate-800 p-1.5 font-semibold">{item.Nama_Asset}</td>
+                  <td className="border border-slate-800 p-1.5">{item.Unit_Kerja} ({item.Lokasi || '-'})</td>
+                  <td className="border border-slate-800 p-1.5 text-center font-semibold">{item.Status_Audit}</td>
+                  <td className="border border-slate-800 p-1.5 text-center font-semibold">{item.Kondisi || 'Baik'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="grid grid-cols-2 gap-4 text-center mt-8 pt-4 font-sans text-[11px]">
+            <div>
+              <p className="font-semibold text-slate-800 mb-10">Mengetahui, <br /> Auditor Utama / Pimpinan</p>
+              <p className="font-bold underline text-slate-950">{session.Petugas_Utama}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-slate-800 mb-10">Disetujui oleh, <br /> Penanggung Jawab Aset</p>
+              <p className="font-bold underline text-slate-950">Tim Verifikasi Internal</p>
+            </div>
+          </div>
+        </div>
+      </PdfPreviewModal>
     </div>
   );
 };

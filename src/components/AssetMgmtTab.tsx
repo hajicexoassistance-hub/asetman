@@ -45,6 +45,10 @@ interface AssetMgmtTabProps {
   onOpenBatchOpsDrawer: (selectedAssets: Asset[]) => void;
   onExportExcel: (selectedAssets?: Asset[]) => void;
   onImportExcelClick: () => void;
+  onOpenCreateSessionDrawer?: () => void;
+  onOpenSessionMgmtDrawer?: () => void;
+  onOpenAuditTab?: () => void;
+  onOpenSessionReportModal?: () => void;
 }
 
 export const AssetMgmtTab: React.FC<AssetMgmtTabProps> = ({
@@ -64,6 +68,10 @@ export const AssetMgmtTab: React.FC<AssetMgmtTabProps> = ({
   onOpenBatchOpsDrawer,
   onExportExcel,
   onImportExcelClick,
+  onOpenCreateSessionDrawer,
+  onOpenSessionMgmtDrawer,
+  onOpenAuditTab,
+  onOpenSessionReportModal,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [selectedUnitFilter, setSelectedUnitFilter] = useState<string>('Semua');
@@ -182,6 +190,64 @@ export const AssetMgmtTab: React.FC<AssetMgmtTabProps> = ({
           >
             <FileSpreadsheet className="w-4 h-4" />
           </button>
+        </div>
+      </div>
+
+      {/* Stock Opname Lifecycle Control Hub Banner */}
+      <div className="bg-[#2D7D62] text-white p-3 rounded-2xl shadow-xs space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 text-[#A8E6CF]">
+            <Calendar className="w-4 h-4" /> Center Stock Opname (SO)
+          </span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">
+            Kelola & Audit
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+          {onOpenCreateSessionDrawer && (
+            <button
+              type="button"
+              onClick={onOpenCreateSessionDrawer}
+              className="px-2.5 py-2 bg-white/15 hover:bg-white/25 text-white font-bold rounded-xl text-[11px] flex items-center justify-center gap-1 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#A8E6CF]" />
+              <span>Buka Sesi SO</span>
+            </button>
+          )}
+
+          {onOpenAuditTab && (
+            <button
+              type="button"
+              onClick={onOpenAuditTab}
+              className="px-2.5 py-2 bg-white text-[#2D7D62] font-bold rounded-xl text-[11px] flex items-center justify-center gap-1 shadow-2xs transition-all cursor-pointer hover:bg-emerald-50"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#2D7D62]" />
+              <span>Mulai Audit SO</span>
+            </button>
+          )}
+
+          {onOpenSessionMgmtDrawer && (
+            <button
+              type="button"
+              onClick={onOpenSessionMgmtDrawer}
+              className="px-2.5 py-2 bg-white/15 hover:bg-white/25 text-white font-bold rounded-xl text-[11px] flex items-center justify-center gap-1 transition-all cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5 text-[#A8E6CF]" />
+              <span>Kelola Sesi</span>
+            </button>
+          )}
+
+          {onOpenSessionReportModal && (
+            <button
+              type="button"
+              onClick={onOpenSessionReportModal}
+              className="px-2.5 py-2 bg-white/15 hover:bg-white/25 text-white font-bold rounded-xl text-[11px] flex items-center justify-center gap-1 transition-all cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#A8E6CF]" />
+              <span>Laporan SO</span>
+            </button>
+          )}
         </div>
       </div>
 

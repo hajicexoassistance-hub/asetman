@@ -174,8 +174,8 @@ export const AssetLifecycleDrawer: React.FC<AssetLifecycleDrawerProps> = ({
             </div>
 
             {/* 2. Events: Berita Acara yang Pernah Terbit */}
-            {relatedBAs.map((ba) => (
-              <div key={ba.ID_BA} className="relative group">
+            {relatedBAs.map((ba, idx) => (
+              <div key={`lcba-${ba.ID_BA || ba.Nomor_BA}-${idx}`} className="relative group">
                 <div className="absolute -left-6 top-0.5 w-3.5 h-3.5 rounded-full bg-indigo-600 ring-4 ring-white" />
                 <div className="p-3 bg-white border border-[#e2e6e4] rounded-xl space-y-1 shadow-2xs">
                   <div className="flex items-center justify-between">

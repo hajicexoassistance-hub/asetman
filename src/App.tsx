@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Asset, SesiSO, ConditionType, RincianKondisi, AssetLoan, BeritaAcaraDoc, UserRole } from './types';
+import { Asset, SesiSO, ConditionType, RincianKondisi, AssetLoan, BeritaAcaraDoc, UserRole, PosActionMode } from './types';
 import {
   fetchInitialData,
   updateStockOpname,
@@ -24,14 +24,18 @@ import {
   processPeriodicDepreciation,
 } from './services/apiService';
 import { exportAuditReportToExcel } from './services/excelService';
+import { generateStandardBaNumber } from './utils/numberingUtils';
 import { Header } from './components/Header';
 import { BottomNav, TabType } from './components/BottomNav';
 import { DashboardTab } from './components/DashboardTab';
+import { AssetPosTab } from './components/AssetPosTab';
 import { AssetMgmtTab } from './components/AssetMgmtTab';
 import { AuditTab } from './components/AuditTab';
 import { LoanTab } from './components/LoanTab';
 import { BeritaAcaraTab } from './components/BeritaAcaraTab';
 import { SettingsTab } from './components/SettingsTab';
+import { MasterDataTab } from './components/MasterDataTab';
+import { BaVaultTab } from './components/BaVaultTab';
 import { ActionHubDrawer } from './components/ActionHubDrawer';
 import { CodeGsModal } from './components/CodeGsModal';
 import { AssetFormDrawer } from './components/AssetFormDrawer';
@@ -55,6 +59,37 @@ export default function App() {
   const [units, setUnits] = useState<string[]>([]);
   const [loans, setLoans] = useState<AssetLoan[]>([]);
   const [beritaAcaraDocs, setBeritaAcaraDocs] = useState<BeritaAcaraDoc[]>([]);
+  const [employees, setEmployees] = useState<Array<{ id: string; nama: string; jabatan: string; unit: string }>>([
+    { id: 'EMP-001', nama: 'Budi Santoso, S.Kom', jabatan: 'IT Supervisor', unit: 'Departemen IT' },
+    { id: 'EMP-002', nama: 'Siti Rahma, SE', jabatan: 'GA Staff', unit: 'HRD & General Affair' },
+    { id: 'EMP-003', nama: 'Ahmad Fauzi', jabatan: 'Finance Manager', unit: 'Keuangan & Akuntansi' },
+  ]);
+  const [vendors, setVendors] = useState<Array<{ id: string; nama: string; kontak: string; kategori: string }>>([
+    { id: 'VND-01', nama: 'PT Solusi Teknologi Nusantara', kontak: '021-5551234', kategori: 'Elektronik & IT' },
+    { id: 'VND-02', nama: 'CV Furniture Indah Jaya', kontak: '022-7778899', kategori: 'Furniture Kantor' },
+  ]);
+
+  const handleAddEmployee = (name: string) => {
+    const newEmp = {
+      id: `EMP-${Math.floor(100 + Math.random() * 900)}`,
+      nama: name,
+      jabatan: 'Staf / PIC',
+      unit: assignedUnit || units[0] || 'Umum',
+    };
+    setEmployees((prev) => [...prev, newEmp]);
+    showToast(`Karyawan/Peminjam baru "${name}" ditambahkan ke Master Data!`, 'success');
+  };
+
+  const handleAddVendor = (name: string) => {
+    const newV = {
+      id: `VND-${Math.floor(10 + Math.random() * 90)}`,
+      nama: name,
+      kontak: '-',
+      kategori: 'Umum',
+    };
+    setVendors((prev) => [...prev, newV]);
+    showToast(`Vendor baru "${name}" ditambahkan ke Master Data!`, 'success');
+  };
 
   const [activeSessionId, setActiveSessionId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -573,6 +608,268 @@ export default function App() {
     showToast(`Dokumen Berita Acara ${doc.Nomor_BA} berhasil diterbitkan & tersimpan!`, 'success');
   };
 
+  const handleExecutePosTransaction = async (payload: {
+    mode: PosActionMode;
+    cartItems: Asset[];
+    formData: any;
+  }) => {
+    setIsSaving(true);
+    try {
+      const { mode, cartItems: items, formData } = payload;
+      const targetIds = items.map((i) => i.ID_Asset);
+      const nextSeq = beritaAcaraDocs.length + 1;
+
+      if (mode === 'pinjam') {
+        const itemMap = new Map(items.map((i) => [i.ID_Asset, i]));
+        const updatedAssets = assets.map((a) => {
+          if (itemMap.has(a.ID_Asset)) {
+            return {
+              ...a,
+              Status_Pinjam: 'Dipinjam' as const,
+              Peminjam_Aktif: formData.borrowerName,
+            };
+          }
+          return a;
+        });
+
+        const newLoan: AssetLoan = {
+          ID_Pinjam: `LNM-POS-${Date.now()}`,
+          ID_Asset: items[0]?.ID_Asset || `BATCH-${items.length}`,
+          Nama_Asset: items.length === 1 ? items[0].Nama_Asset : `Peminjaman ${items.length} Barang Aset`,
+          ID_Asset_List: targetIds,
+          Nama_Peminjam: formData.borrowerName,
+          Unit_Peminjam: formData.borrowerUnit,
+          Tanggal_Pinjam: new Date().toISOString().substring(0, 10),
+          Target_Kembali: formData.targetReturnDate,
+          Keperluan: formData.loanPurpose || 'Peminjaman operasional via POS',
+          Status_Pinjam: 'Dipinjam',
+          Tanda_Tangan_Peminjam: formData.signature,
+          Petugas_Pinjam: getActiveAuditor(),
+          Kondisi_Saat_Pinjam: 'Baik',
+        };
+
+        const baLoanDoc: BeritaAcaraDoc = {
+          ID_BA: `BA-PJM-${Date.now()}`,
+          Nomor_BA: generateStandardBaNumber('BAST Peminjaman', formData.borrowerUnit, nextSeq),
+          Jenis_BA: 'BAST Peminjaman',
+          Tanggal_BA: new Date().toISOString().substring(0, 10),
+          ID_Asset: items[0]?.ID_Asset || `BATCH-${items.length}`,
+          Nama_Asset: items.length === 1 ? items[0].Nama_Asset : `Peminjaman ${items.length} Barang Aset`,
+          Aset_List: items,
+          Kategori: items[0]?.Kategori || 'Peminjaman',
+          Unit_Asal: items[0]?.Unit_Kerja || 'Gudang Utama',
+          Unit_Tujuan: formData.borrowerUnit,
+          Alasan_Keterangan: formData.loanPurpose || 'Peminjaman operasional via POS',
+          Nama_Pihak_1: getActiveAuditor(),
+          Jabatan_Pihak_1: 'Petugas Pengeluar Aset',
+          TTD_Pihak_1: formData.signature,
+          Nama_Pihak_2: formData.borrowerName,
+          Jabatan_Pihak_2: `Peminjam (${formData.borrowerUnit})`,
+          TTD_Pihak_2: formData.signature,
+          Status_BA: 'Disetujui',
+          Status_Siklus: 'Dipinjam-Aktif',
+          Target_Kembali: formData.targetReturnDate,
+        };
+
+        setAssets(updatedAssets);
+        const resLoans = saveAssetLoan(newLoan);
+        setLoans(resLoans.loans);
+        const updatedDocs = saveBeritaAcaraDocument(baLoanDoc);
+        setBeritaAcaraDocs(updatedDocs);
+        showToast(`Peminjaman POS ${items.length} aset & BA Peminjaman (${baLoanDoc.Nomor_BA}) terbit!`, 'success');
+      } else if (mode === 'kembali') {
+        const itemMap = new Map(items.map((i) => [i.ID_Asset, i]));
+        const updatedAssets = assets.map((a) => {
+          const itemInfo = itemMap.get(a.ID_Asset);
+          if (itemInfo) {
+            return {
+              ...a,
+              Status_Pinjam: 'Tersedia' as const,
+              Peminjam_Aktif: undefined,
+              Kondisi: itemInfo.Kondisi || 'Baik',
+              Catatan_Khusus_Item: itemInfo.Catatan_Khusus_Item || a.Catatan_Khusus_Item,
+            };
+          }
+          return a;
+        });
+
+        const baReturnDoc: BeritaAcaraDoc = {
+          ID_BA: `BA-RET-${Date.now()}`,
+          Nomor_BA: generateStandardBaNumber('BA Pengembalian', items[0]?.Unit_Kerja || 'HRD', nextSeq),
+          Jenis_BA: 'BA Pengembalian',
+          Tanggal_BA: new Date().toISOString().substring(0, 10),
+          ID_Asset: items[0]?.ID_Asset || `BATCH-${items.length}`,
+          Nama_Asset: items.length === 1 ? items[0].Nama_Asset : `Pengembalian ${items.length} Barang Aset`,
+          Aset_List: items,
+          Kategori: items[0]?.Kategori || 'Pengembalian',
+          Unit_Asal: items[0]?.Unit_Kerja || 'Unit Peminjam',
+          Unit_Tujuan: 'Gudang Utama',
+          Alasan_Keterangan: 'Pengembalian barang aset ke gudang utama.',
+          Nama_Pihak_1: items[0]?.Peminjam_Aktif || 'Peminjam',
+          Jabatan_Pihak_1: 'Peminjam Aset',
+          Nama_Pihak_2: getActiveAuditor(),
+          Jabatan_Pihak_2: 'Petugas Penerima Aset',
+          Status_BA: 'Disetujui',
+          Status_Siklus: 'Selesai Dikembalikan',
+        };
+
+        setAssets(updatedAssets);
+        batchUpdateAssets(updatedAssets).catch(() => {});
+        const updatedDocs = saveBeritaAcaraDocument(baReturnDoc);
+        setBeritaAcaraDocs(updatedDocs);
+        showToast(`Pengembalian POS ${items.length} aset & BA Pengembalian (${baReturnDoc.Nomor_BA}) terbit!`, 'success');
+      } else if (mode === 'bast_terima') {
+        const baDoc: BeritaAcaraDoc = {
+          ID_BA: `BA-RCV-${Date.now()}`,
+          Nomor_BA: generateStandardBaNumber('BAST Penerimaan', items[0]?.Unit_Kerja || 'HRD', nextSeq),
+          Jenis_BA: 'BAST Penerimaan',
+          Tanggal_BA: new Date().toISOString().substring(0, 10),
+          ID_Asset: items[0]?.ID_Asset || `MULTI-${items.length}`,
+          Nama_Asset: items.length === 1 ? items[0].Nama_Asset : `Penerimaan ${items.length} Barang Aset Baru`,
+          Aset_List: items,
+          Kategori: items[0]?.Kategori || 'Pengadaan Vendor',
+          Unit_Asal: formData.pihak1Nama || 'Vendor Supplier',
+          Unit_Tujuan: items[0]?.Unit_Kerja || 'Gudang Utama',
+          Alasan_Keterangan: `Penerimaan pengadaan aset baru PO ${formData.poNumber || ''}`,
+          Nama_Pihak_1: formData.pihak1Nama,
+          Jabatan_Pihak_1: formData.pihak1Jabatan || 'Penyerah Vendor',
+          TTD_Pihak_1: formData.pihak1TTD,
+          Nama_Pihak_2: formData.pihak2Nama,
+          Jabatan_Pihak_2: formData.pihak2Jabatan || 'Penerima Aset',
+          TTD_Pihak_2: formData.pihak2TTD,
+          Status_BA: 'Disetujui',
+          Status_Siklus: 'Terarsip/Sah',
+        };
+
+        const updatedDocs = saveBeritaAcaraDocument(baDoc);
+        setBeritaAcaraDocs(updatedDocs);
+        showToast(`BAST Penerimaan (${baDoc.Nomor_BA}) ${items.length} barang berhasil diterbitkan!`, 'success');
+      } else if (mode === 'mutasi') {
+        const itemMap = new Map(items.map((i) => [i.ID_Asset, i]));
+        const updatedAssets = assets.map((a) => {
+          if (itemMap.has(a.ID_Asset)) {
+            return {
+              ...a,
+              Unit_Kerja: formData.targetUnitMutasi,
+              Penanggung_Jawab: formData.newPicMutasi,
+            };
+          }
+          return a;
+        });
+
+        const baMutasi: BeritaAcaraDoc = {
+          ID_BA: `BA-MUT-${Date.now()}`,
+          Nomor_BA: generateStandardBaNumber('BA Mutasi', formData.targetUnitMutasi, nextSeq),
+          Jenis_BA: 'BA Mutasi',
+          Tanggal_BA: new Date().toISOString().substring(0, 10),
+          ID_Asset: items[0]?.ID_Asset || `MULTI-${items.length}`,
+          Nama_Asset: items.length === 1 ? items[0].Nama_Asset : `Mutasi ${items.length} Barang ke ${formData.targetUnitMutasi}`,
+          Aset_List: items,
+          Kategori: 'Mutasi Unit',
+          Unit_Asal: items[0]?.Unit_Kerja || 'Unit Asal',
+          Unit_Tujuan: formData.targetUnitMutasi,
+          Penanggung_Jawab_Lama: items[0]?.Penanggung_Jawab || 'PIC Lama',
+          Penanggung_Jawab_Baru: formData.newPicMutasi,
+          Alasan_Keterangan: formData.alasanMutasi || 'Perpindahan alokasi aset antar unit.',
+          Nama_Pihak_1: formData.pihak1Nama || getActiveAuditor(),
+          TTD_Pihak_1: formData.pihak1TTD,
+          Nama_Pihak_2: formData.pihak2Nama,
+          TTD_Pihak_2: formData.pihak2TTD,
+          Status_BA: 'Disetujui',
+          Status_Siklus: 'Terarsip/Sah',
+        };
+
+        setAssets(updatedAssets);
+        batchUpdateAssets(updatedAssets).catch(() => {});
+        const updatedDocs = saveBeritaAcaraDocument(baMutasi);
+        setBeritaAcaraDocs(updatedDocs);
+        showToast(`Mutasi ${items.length} aset & BA Mutasi (${baMutasi.Nomor_BA}) berhasil diterbitkan!`, 'success');
+      } else if (mode === 'hapus') {
+        const itemMap = new Map(items.map((i) => [i.ID_Asset, i]));
+        const updatedAssets = assets.map((a) => {
+          const itemInfo = itemMap.get(a.ID_Asset);
+          if (itemInfo) {
+            return {
+              ...a,
+              Kondisi: itemInfo.Kondisi || ('Musnah' as const),
+              Catatan_Khusus_Item: itemInfo.Catatan_Khusus_Item || a.Catatan_Khusus_Item,
+            };
+          }
+          return a;
+        });
+
+        const baDisposal: BeritaAcaraDoc = {
+          ID_BA: `BA-DISP-${Date.now()}`,
+          Nomor_BA: generateStandardBaNumber('BA Penghapusan', items[0]?.Unit_Kerja || 'HRD', nextSeq),
+          Jenis_BA: 'BA Penghapusan',
+          Tanggal_BA: new Date().toISOString().substring(0, 10),
+          ID_Asset: items[0]?.ID_Asset || `MULTI-${items.length}`,
+          Nama_Asset: items.length === 1 ? items[0].Nama_Asset : `Penghapusan ${items.length} Barang Afkir`,
+          Aset_List: items,
+          Kategori: 'Penghapusan Afkir',
+          Alasan_Keterangan: formData.disposalReason || 'Penghapusan aset rusak berat/musnah.',
+          Nama_Pihak_1: formData.pihak1Nama || getActiveAuditor(),
+          TTD_Pihak_1: formData.pihak1TTD,
+          Nama_Pihak_2: formData.witnessName || 'Saksi Otorisasi',
+          TTD_Pihak_2: formData.pihak2TTD,
+          Status_BA: 'Disetujui',
+          Status_Siklus: 'Terarsip/Sah',
+        };
+
+        setAssets(updatedAssets);
+        batchUpdateAssets(updatedAssets).catch(() => {});
+        const updatedDocs = saveBeritaAcaraDocument(baDisposal);
+        setBeritaAcaraDocs(updatedDocs);
+        showToast(`Penghapusan ${items.length} aset & BA Penghapusan (${baDisposal.Nomor_BA}) diproses!`, 'info');
+      } else if (mode === 'input_baru') {
+        const qty = formData.qty || 1;
+        const newAssetsList: Asset[] = [];
+        const auditor = getActiveAuditor();
+
+        for (let i = 0; i < qty; i++) {
+          const idCode = `${formData.kategori.substring(0, 3).toUpperCase()}-${formData.unitKerja.substring(0, 3).toUpperCase()}-${new Date().getFullYear()}-${String(Math.floor(1000 + Math.random() * 9000))}`;
+          const created: Asset = {
+            ID_Asset: idCode,
+            Nama_Asset: qty > 1 ? `${formData.namaAsset} #${i + 1}` : formData.namaAsset,
+            Kategori: formData.kategori,
+            Jenis: formData.kategori,
+            Penanggung_Jawab: formData.pic,
+            Unit_Kerja: formData.unitKerja,
+            Tahun_Beli: String(new Date().getFullYear()),
+            Tanggal_Perolehan: new Date().toISOString().substring(0, 10),
+            Lokasi: formData.unitKerja,
+            Jumlah_Asal: 1,
+            Jumlah: 1,
+            Kondisi: 'Baik',
+            Rincian_Kondisi: { Baik: 1, Rusak_Ringan: 0, Rusak_Berat: 0, Hilang: 0, Musnah: 0 },
+            Petugas_SO: auditor,
+            Keterangan_SO: '',
+            Tanggal_SO: '',
+            Sesi_SO_Terakhir: activeSessionId || 'SESI-001',
+            Status_Audit: 'Belum SO',
+            Harga_Perolehan: formData.hargaPerolehan,
+            Masa_Manfaat: formData.masaManfaat || 4,
+            Status_Pinjam: 'Tersedia',
+          };
+          newAssetsList.push(created);
+        }
+
+        const updatedAssets = [...newAssetsList, ...assets];
+        setAssets(updatedAssets);
+        batchUpdateAssets(updatedAssets).catch(() => {});
+        showToast(`Registrasi ${qty} aset baru "${formData.namaAsset}" berhasil disimpan!`, 'success');
+      } else if (mode === 'cetak_label') {
+        setBarcodeDrawerAsset(items[0] || null);
+        setBarcodeDrawerList(items);
+        setIsBarcodeDrawerOpen(true);
+      }
+    } catch (err: any) {
+      showToast('Gagal memproses transaksi POS: ' + (err.message || ''), 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleExportExcel = (selectedAssets?: Asset[]) => {
     const exportData = selectedAssets && selectedAssets.length > 0 ? selectedAssets : assets;
     exportAuditReportToExcel(exportData, sessions);
@@ -672,7 +969,7 @@ export default function App() {
       />
 
       {/* Main Viewport Content */}
-      <main className="flex-1 max-w-xl w-full mx-auto px-4 py-2">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-4 py-1.5">
         {isAuditViewActive ? (
           <AuditTab
             assets={assets}
@@ -731,6 +1028,25 @@ export default function App() {
               />
             )}
 
+            {activeTab === 'pos' && (
+              <AssetPosTab
+                assets={assets}
+                categories={categories}
+                units={units}
+                employees={employees}
+                vendors={vendors}
+                onAddEmployee={handleAddEmployee}
+                onAddVendor={handleAddVendor}
+                userRole={userRole}
+                assignedUnit={assignedUnit}
+                activeAuditor={getActiveAuditor()}
+                onExecuteTransaction={handleExecutePosTransaction}
+                isProcessing={isSaving}
+                onOpenScanner={() => setIsScannerOpen(true)}
+                onShowToast={showToast}
+              />
+            )}
+
             {activeTab === 'assets' && (
               <AssetMgmtTab
                 assets={assets}
@@ -773,6 +1089,32 @@ export default function App() {
                 }}
                 onExportExcel={handleExportExcel}
                 onImportExcelClick={() => setIsAddAssetDrawerOpen(true)}
+                onOpenCreateSessionDrawer={() => setIsCreateSessionDrawerOpen(true)}
+                onOpenSessionMgmtDrawer={() => setIsSessionMgmtDrawerOpen(true)}
+                onOpenAuditTab={() => setIsAuditViewActive(true)}
+                onOpenSessionReportModal={() => {
+                  const currentActive = sessions.find((s) => s.ID_Sesi === activeSessionId) || sessions[0] || null;
+                  setSelectedReportSession(currentActive);
+                  setIsSessionReportModalOpen(true);
+                }}
+              />
+            )}
+
+            {activeTab === 'archive' && (
+              <BaVaultTab
+                docs={beritaAcaraDocs}
+                assets={assets}
+                userRole={userRole}
+                assignedUnit={assignedUnit}
+                units={units}
+                onOpenPosModeWithItems={(mode, items) => {
+                  setActiveTab('pos');
+                }}
+                onOpenAssetDetail={(asset) => {
+                  setDetailDrawerAsset(asset);
+                  setIsDetailDrawerOpen(true);
+                }}
+                onShowToast={showToast}
               />
             )}
 
@@ -783,6 +1125,9 @@ export default function App() {
                 assignedUnit={assignedUnit}
                 onAssignedUnitChange={(unit) => setAssignedUnit(unit)}
                 units={units}
+                categories={categories}
+                onAddCategory={(cat) => setCategories((prev) => Array.from(new Set([...prev, cat])))}
+                onAddUnit={(unit) => setUnits((prev) => Array.from(new Set([...prev, unit])))}
                 gasUrl={gasUrl}
                 onSaveGasUrl={handleUrlUpdated}
                 onOpenGasModal={() => setIsGasModalOpen(true)}
@@ -796,6 +1141,7 @@ export default function App() {
                 }}
                 onResetDemo={handleResetDemo}
                 onRunDepreciationBatch={handleRunDepreciationBatch}
+                onShowToast={showToast}
               />
             )}
           </>
@@ -966,12 +1312,8 @@ export default function App() {
         onTabChange={(tab) => {
           setIsLoanViewActive(false);
           setIsBAViewActive(false);
-          if (tab === 'audit') {
-            setIsAuditViewActive(true);
-          } else {
-            setIsAuditViewActive(false);
-            setActiveTab(tab);
-          }
+          setIsAuditViewActive(false);
+          setActiveTab(tab);
         }}
         onOpenActionHub={() => setIsActionHubOpen(true)}
         pendingAuditCount={pendingAuditCount}

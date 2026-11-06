@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AssetLoan, UserRole } from '../types';
 import { formatDateIndonesian } from '../utils/dateUtils';
+import { PdfPreviewModal } from './PdfPreviewModal';
 import { Plus, ArrowLeftRight, Clock, AlertTriangle, CheckCircle, User, Calendar, FileText } from 'lucide-react';
 
 interface LoanTabProps {
@@ -17,6 +18,8 @@ export const LoanTab: React.FC<LoanTabProps> = ({
   onOpenReturnLoanDrawer,
 }) => {
   const [filterStatus, setFilterStatus] = useState<'All' | 'Dipinjam' | 'Overdue' | 'Dikembalikan'>('Dipinjam');
+  const [previewLoan, setPreviewLoan] = useState<AssetLoan | null>(null);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   const filteredLoans = loans.filter((l) => {
     if (filterStatus === 'Dipinjam') return l.Status_Pinjam === 'Dipinjam';
@@ -27,6 +30,11 @@ export const LoanTab: React.FC<LoanTabProps> = ({
 
   const activeCount = loans.filter((l) => l.Status_Pinjam === 'Dipinjam').length;
   const overdueCount = loans.filter((l) => l.Status_Pinjam === 'Overdue').length;
+
+  const handleOpenPdf = (loan: AssetLoan) => {
+    setPreviewLoan(loan);
+    setIsPdfModalOpen(true);
+  };
 
   return (
     <div className="space-y-4 pb-24 pt-2 animate-in fade-in text-xs text-[#2C3E50]">
@@ -137,9 +145,16 @@ export const LoanTab: React.FC<LoanTabProps> = ({
                 </p>
               )}
 
-              {/* Footer Return Action */}
-              {loan.Status_Pinjam !== 'Dikembalikan' && (
-                <div className="pt-2 border-t border-[#e2e6e4] flex justify-end">
+              {/* Footer Return & PDF Action */}
+              <div className="pt-2 border-t border-[#e2e6e4] flex items-center justify-between">
+                <button
+                  onClick={() => handleOpenPdf(loan)}
+                  className="flex items-center gap-1 text-[#2D7D62] hover:underline font-bold text-xs"
+                >
+                  <FileText className="w-3.5 h-3.5" /> Lihat Slip PDF
+                </button>
+
+                {loan.Status_Pinjam !== 'Dikembalikan' && (
                   <button
                     onClick={() => onOpenReturnLoanDrawer(loan)}
                     className="flex items-center gap-1.5 bg-[#2D7D62] hover:bg-[#23634e] text-white font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs transition-all active:scale-95"
@@ -147,12 +162,80 @@ export const LoanTab: React.FC<LoanTabProps> = ({
                     <CheckCircle className="w-3.5 h-3.5" />
                     <span>Proses Pengembalian Aset</span>
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ))
         )}
       </div>
+
+      {/* PDF Preview Modal for Loan Slip */}
+      {previewLoan && (
+        <PdfPreviewModal
+          isOpen={isPdfModalOpen}
+          onClose={() => {
+            setIsPdfModalOpen(false);
+            setPreviewLoan(null);
+          }}
+          title={`Slip Bukti Peminjaman Aset`}
+          subtitle={`ID Pinjam: ${previewLoan.ID_Pinjam}`}
+          filename={`Slip-Peminjaman-${previewLoan.ID_Pinjam}`}
+        >
+          <div className="space-y-6 text-slate-900 font-serif text-xs leading-relaxed">
+            <div className="text-center border-b-2 border-slate-900 pb-3 mb-4">
+              <h2 className="text-base font-extrabold tracking-wide uppercase text-slate-950 font-sans">
+                BUKTI PEMINJAMAN & SERAH TERIMA ASET KANTOR
+              </h2>
+              <p className="text-[10px] text-slate-600 font-sans">
+                ID Slip: {previewLoan.ID_Pinjam} · Petugas: {previewLoan.Petugas_Pinjam || 'Admin'}
+              </p>
+            </div>
+
+            <div className="space-y-2 font-sans mb-4">
+              <p><strong>Nama Peminjam:</strong> {previewLoan.Nama_Peminjam}</p>
+              <p><strong>Unit / Divisi:</strong> {previewLoan.Unit_Peminjam}</p>
+              <p><strong>Tanggal Pinjam:</strong> {formatDateIndonesian(previewLoan.Tanggal_Pinjam)}</p>
+              <p><strong>Target Kembali:</strong> {formatDateIndonesian(previewLoan.Target_Kembali)}</p>
+              <p><strong>Keperluan:</strong> {previewLoan.Keperluan || '-'}</p>
+            </div>
+
+            <table className="w-full border-collapse border border-slate-800 text-[11px] mb-4 font-sans">
+              <thead>
+                <tr className="bg-slate-100 text-slate-900 border-b border-slate-800 font-bold">
+                  <th className="border border-slate-800 p-1.5 text-center w-10">No</th>
+                  <th className="border border-slate-800 p-1.5 text-left">Kode Aset</th>
+                  <th className="border border-slate-800 p-1.5 text-left">Nama Barang</th>
+                  <th className="border border-slate-800 p-1.5 text-center">Kondisi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border border-slate-800 p-1.5 text-center font-bold">1</td>
+                  <td className="border border-slate-800 p-1.5 font-mono font-bold">{previewLoan.ID_Asset}</td>
+                  <td className="border border-slate-800 p-1.5 font-semibold">{previewLoan.Nama_Asset}</td>
+                  <td className="border border-slate-800 p-1.5 text-center">{previewLoan.Kondisi_Saat_Pinjam || 'Baik'}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div className="grid grid-cols-2 gap-4 text-center mt-8 pt-4 font-sans text-[11px]">
+              <div>
+                <p className="font-semibold text-slate-800 mb-10">Petugas Pemberi</p>
+                <p className="font-bold underline text-slate-950">{previewLoan.Petugas_Pinjam || 'Admin Aset'}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-800 mb-10">Peminjam</p>
+                <div className="h-12 flex items-center justify-center my-1">
+                  {previewLoan.Tanda_Tangan_Peminjam ? (
+                    <img src={previewLoan.Tanda_Tangan_Peminjam} alt="TTD Peminjam" className="max-h-12 max-w-full object-contain" />
+                  ) : null}
+                </div>
+                <p className="font-bold underline text-slate-950">{previewLoan.Nama_Peminjam}</p>
+              </div>
+            </div>
+          </div>
+        </PdfPreviewModal>
+      )}
     </div>
   );
 };

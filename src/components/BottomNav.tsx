@@ -1,101 +1,91 @@
 import React from 'react';
-import { LayoutDashboard, Boxes, Zap, QrCode, Settings } from 'lucide-react';
+import { LayoutDashboard, Boxes, ShoppingCart, FileText, Settings } from 'lucide-react';
 
-export type TabType = 'dashboard' | 'assets' | 'audit' | 'settings';
+export type TabType = 'dashboard' | 'assets' | 'pos' | 'archive' | 'settings';
 
 interface BottomNavProps {
   activeTab: TabType | string;
   isAuditViewActive?: boolean;
   onTabChange: (tab: TabType) => void;
-  onOpenActionHub: () => void;
-  pendingAuditCount: number;
+  onOpenActionHub?: () => void;
+  pendingAuditCount?: number;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   isAuditViewActive = false,
   onTabChange,
-  onOpenActionHub,
-  pendingAuditCount,
 }) => {
   const isDashboardActive = activeTab === 'dashboard' && !isAuditViewActive;
   const isAssetsActive = activeTab === 'assets' && !isAuditViewActive;
-  const isAuditActive = isAuditViewActive || activeTab === 'audit';
+  const isPosActive = activeTab === 'pos' && !isAuditViewActive;
+  const isArchiveActive = activeTab === 'archive' && !isAuditViewActive;
   const isSettingsActive = activeTab === 'settings' && !isAuditViewActive;
 
   return (
     <nav className="sticky bottom-0 z-40 w-full bg-white/95 backdrop-blur-md border-t border-[#F2F4F3] transition-colors pb-safe shadow-lg">
       <div className="grid grid-cols-5 items-center w-full h-16 px-1 max-w-xl mx-auto relative">
-        {/* 1. Dashboard Tab */}
+        {/* 1. Beranda Tab */}
         <button
+          type="button"
           onClick={() => onTabChange('dashboard')}
-          className={`flex flex-col items-center justify-center relative h-full transition-all ${
+          className={`flex flex-col items-center justify-center relative h-full transition-all cursor-pointer ${
             isDashboardActive ? 'text-[#2D7D62] font-bold' : 'text-[#7F8C8D] hover:text-[#2C3E50] font-medium'
           }`}
         >
-          {isDashboardActive && (
-            <span className="absolute top-0 w-6 h-1 bg-[#2D7D62] rounded-b-full transition-all" />
-          )}
+          {isDashboardActive && <span className="absolute top-0 w-6 h-1 bg-[#2D7D62] rounded-b-full transition-all" />}
           <LayoutDashboard className="w-5 h-5" />
-          <span className="text-[10px] tracking-tight mt-1">Dashboard</span>
+          <span className="text-[10px] tracking-tight mt-1">Beranda</span>
         </button>
 
-        {/* 2. Katalog Aset Tab */}
+        {/* 2. Aset Tab (Stok & SO) */}
         <button
+          type="button"
           onClick={() => onTabChange('assets')}
-          className={`flex flex-col items-center justify-center relative h-full transition-all ${
+          className={`flex flex-col items-center justify-center relative h-full transition-all cursor-pointer ${
             isAssetsActive ? 'text-[#2D7D62] font-bold' : 'text-[#7F8C8D] hover:text-[#2C3E50] font-medium'
           }`}
         >
-          {isAssetsActive && (
-            <span className="absolute top-0 w-6 h-1 bg-[#2D7D62] rounded-b-full transition-all" />
-          )}
+          {isAssetsActive && <span className="absolute top-0 w-6 h-1 bg-[#2D7D62] rounded-b-full transition-all" />}
           <Boxes className="w-5 h-5" />
           <span className="text-[10px] tracking-tight mt-1">Aset</span>
         </button>
 
-        {/* 3. Center Prominent Floating Action Hub Button */}
-        <div className="flex items-center justify-center relative -top-3">
-          <button
-            onClick={onOpenActionHub}
-            className="w-13 h-13 rounded-2xl bg-[#2D7D62] hover:bg-[#23634e] text-white flex flex-col items-center justify-center shadow-lg shadow-[#2D7D62]/30 hover:scale-105 active:scale-95 transition-all border-2 border-white ring-2 ring-[#A8E6CF]"
-            title="Menu Aksi Aset"
-          >
-            <Zap className="w-6 h-6 fill-white text-white" />
-          </button>
-        </div>
-
-        {/* 4. Stock Opname / Audit Tab */}
+        {/* 3. POS Tab (Store-style POS) */}
         <button
-          onClick={() => onTabChange('audit')}
-          className={`flex flex-col items-center justify-center relative h-full transition-all ${
-            isAuditActive ? 'text-[#2D7D62] font-bold' : 'text-[#7F8C8D] hover:text-[#2C3E50] font-medium'
+          type="button"
+          onClick={() => onTabChange('pos')}
+          className={`flex flex-col items-center justify-center relative h-full transition-all cursor-pointer ${
+            isPosActive ? 'text-[#2D7D62] font-bold' : 'text-[#7F8C8D] hover:text-[#2C3E50] font-medium'
           }`}
         >
-          {isAuditActive && (
-            <span className="absolute top-0 w-6 h-1 bg-[#2D7D62] rounded-b-full transition-all" />
-          )}
-          <div className="relative">
-            <QrCode className="w-5 h-5" />
-            {pendingAuditCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-amber-500 text-white font-mono font-bold text-[9px] min-w-[15px] h-[15px] px-1 rounded-full flex items-center justify-center border border-white shadow-xs">
-                {pendingAuditCount > 99 ? '99+' : pendingAuditCount}
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] tracking-tight mt-1">Audit</span>
+          {isPosActive && <span className="absolute top-0 w-6 h-1 bg-[#2D7D62] rounded-b-full transition-all" />}
+          <ShoppingCart className="w-5 h-5" />
+          <span className="text-[10px] tracking-tight mt-1">POS</span>
         </button>
 
-        {/* 5. Pengaturan Tab */}
+        {/* 4. Arsip BA Vault Tab */}
         <button
+          type="button"
+          onClick={() => onTabChange('archive')}
+          className={`flex flex-col items-center justify-center relative h-full transition-all cursor-pointer ${
+            isArchiveActive ? 'text-[#2D7D62] font-bold' : 'text-[#7F8C8D] hover:text-[#2C3E50] font-medium'
+          }`}
+        >
+          {isArchiveActive && <span className="absolute top-0 w-6 h-1 bg-[#2D7D62] rounded-b-full transition-all" />}
+          <FileText className="w-5 h-5" />
+          <span className="text-[10px] tracking-tight mt-1">Arsip BA</span>
+        </button>
+
+        {/* 5. Setelan Tab (Includes Master Data) */}
+        <button
+          type="button"
           onClick={() => onTabChange('settings')}
-          className={`flex flex-col items-center justify-center relative h-full transition-all ${
+          className={`flex flex-col items-center justify-center relative h-full transition-all cursor-pointer ${
             isSettingsActive ? 'text-[#2D7D62] font-bold' : 'text-[#7F8C8D] hover:text-[#2C3E50] font-medium'
           }`}
         >
-          {isSettingsActive && (
-            <span className="absolute top-0 w-6 h-1 bg-[#2D7D62] rounded-b-full transition-all" />
-          )}
+          {isSettingsActive && <span className="absolute top-0 w-6 h-1 bg-[#2D7D62] rounded-b-full transition-all" />}
           <Settings className="w-5 h-5" />
           <span className="text-[10px] tracking-tight mt-1">Setelan</span>
         </button>

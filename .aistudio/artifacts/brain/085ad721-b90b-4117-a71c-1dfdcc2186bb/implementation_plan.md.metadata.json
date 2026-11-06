@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan to fix saving acquisition price and depreciation value in Google Apps Script and frontend by auto-joining Master_Assets financial data into Stock Opname sessions.",
-  "updatedAt": "2026-11-05T19:32:13.388347121Z",
+  "summary": "Rencana konsolidasi 4 kartu KPI di BA Vault menjadi 1 kartu padat Horizontal Split dengan SVG Donut Chart mini di sebelah kiri (Center Label Total BA) dan legenda 4 statistik ringkas di sebelah kanan.",
+  "updatedAt": "2026-11-06T15:43:41.419570038Z",
   "requestFeedback": true,
   "userFacing": true
 }

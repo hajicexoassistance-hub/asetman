@@ -2,12 +2,15 @@ export type ConditionType = 'Baik' | 'Rusak Ringan' | 'Rusak Berat' | 'Hilang' |
 export type StatusAuditType = 'Sudah SO' | 'Belum SO';
 export type StatusPinjamType = 'Tersedia' | 'Dipinjam' | 'Perbaikan' | 'Dalam Proses BA';
 export type UserRole = 'Admin' | 'Auditor' | 'Staf';
+export type PosActionMode = 'pinjam' | 'kembali' | 'bast_terima' | 'mutasi' | 'hapus' | 'input_baru' | 'cetak_label';
 
 export type JenisBeritaAcara =
   | 'BAST Penerimaan'
   | 'BAST Peminjaman'
+  | 'BA Pengembalian'
   | 'BA Mutasi'
   | 'BA Penghapusan'
+  | 'BA Stock Opname'
   | 'BA Pelelangan';
 
 export interface RincianKondisi {
@@ -118,6 +121,9 @@ export interface BeritaAcaraDoc {
   TTD_Atasan?: string;
   Nama_Atasan?: string;
   Status_BA: 'Draft' | 'Disetujui' | 'Arsip';
+  Status_Siklus?: 'Terarsip/Sah' | 'Dipinjam-Aktif' | 'Overdue' | 'Selesai Dikembalikan';
+  Ref_BA_Pasangan?: string;
+  Target_Kembali?: string;
 }
 
 export interface BarcodeLabelConfig {

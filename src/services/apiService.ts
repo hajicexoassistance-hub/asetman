@@ -265,7 +265,17 @@ export function getLocalBeritaAcaraDocs(): BeritaAcaraDoc[] {
     return INITIAL_DEMO_BA;
   }
   try {
-    return JSON.parse(data);
+    const list = JSON.parse(data);
+    if (!Array.isArray(list)) return INITIAL_DEMO_BA;
+    const seen = new Set<string>();
+    return list.map((doc, idx) => {
+      let id = doc.ID_BA || `BA-${Date.now()}-${idx}`;
+      if (seen.has(id)) {
+        id = `${id}-${idx}`;
+      }
+      seen.add(id);
+      return { ...doc, ID_BA: id };
+    });
   } catch {
     return INITIAL_DEMO_BA;
   }
@@ -697,14 +707,16 @@ export async function updateStockOpname(payload: {
 
     const json = await res.json();
     if (json.status === 'success' && json.data) {
-      const normalized = normalizeAssetList(json.data.assets);
+      const rawAssets = Array.isArray(json.data.assets) && json.data.assets.length > 0 ? json.data.assets : null;
+      const normalized = rawAssets ? normalizeAssetList(rawAssets) : updateLocalStockOpnameInternal(payload).assets;
       saveLocalAssets(normalized);
-      saveLocalSessions(json.data.sessions);
+      if (json.data.sessions) saveLocalSessions(json.data.sessions);
       if (json.data.categories) saveLocalCategories(json.data.categories);
       if (json.data.units) saveLocalUnits(json.data.units);
       return {
         ...json.data,
         assets: normalized,
+        sessions: json.data.sessions || getLocalSessions(),
         loans: getLocalLoans(),
         beritaAcaraDocs: getLocalBeritaAcaraDocs(),
       };
